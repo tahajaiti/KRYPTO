@@ -13,6 +13,7 @@
 
     <modules>
         <module>krypto-discovery</module>
+        <module>krypto-gateway</module>
     </modules>
 
 
@@ -31,6 +32,14 @@
         <springdoc.version>3.0.0</springdoc.version>
         <testcontainers.version>2.0.2</testcontainers.version>
     </properties>
+
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/tahajaiti/krypto</url>
+        </repository>
+    </distributionManagement>
 
     <dependencyManagement>
         <dependencies>
@@ -65,6 +74,13 @@
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
                     <version>${spring-boot.version}</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>repackage</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
             </plugins>
         </pluginManagement>
