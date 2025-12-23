@@ -1,6 +1,6 @@
-package com.krypto.common.exception;
+package com.kyojin.krypto.common.exception;
 
-import com.krypto.common.dto.Response;
+import com.kyojin.krypto.common.dto.Response;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;

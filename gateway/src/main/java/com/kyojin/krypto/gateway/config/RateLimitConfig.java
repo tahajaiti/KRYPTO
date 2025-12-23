@@ -1,4 +1,4 @@
-package com.krypto.gateway.config;
+package com.kyojin.krypto.gateway.config;
 
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.context.annotation.Bean;

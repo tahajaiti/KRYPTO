@@ -1,4 +1,4 @@
-package com.krypto.gateway.config;
+package com.kyojin.krypto.gateway.config;
 
 import org.springframework.boot.autoconfigure.web.WebProperties;
 import org.springframework.context.annotation.Bean;

@@ -1,4 +1,4 @@
-package com.krypto.common.dto;
+package com.kyojin.krypto.common.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

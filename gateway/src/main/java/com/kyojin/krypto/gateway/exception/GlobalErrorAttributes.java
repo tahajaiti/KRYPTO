@@ -1,4 +1,4 @@
-package com.krypto.gateway.exception;
+package com.kyojin.krypto.gateway.exception;
 
 import org.springframework.boot.web.error.ErrorAttributeOptions;
 import org.springframework.boot.webflux.error.DefaultErrorAttributes;

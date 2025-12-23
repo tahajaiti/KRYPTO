@@ -1,4 +1,4 @@
-package com.krypto.gateway.controller;
+package com.kyojin.krypto.gateway.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

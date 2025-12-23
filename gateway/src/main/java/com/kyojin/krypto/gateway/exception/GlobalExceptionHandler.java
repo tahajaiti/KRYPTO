@@ -1,4 +1,4 @@
-package com.krypto.gateway.exception;
+package com.kyojin.krypto.gateway.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.web.WebProperties;
