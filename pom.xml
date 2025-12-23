@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.kyojin</groupId>
+    <groupId>com.krypto</groupId>
     <artifactId>krypto</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
@@ -12,8 +12,10 @@
     <name>KRYPTO</name>
 
     <modules>
-        <module>krypto-discovery</module>
-        <module>krypto-gateway</module>
+        <module>discovery</module>
+        <module>gateway</module>
+        <module>common</module>
+        <module>test-service</module>
     </modules>
 
 
@@ -23,7 +25,7 @@
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <spring-boot.version>4.0.0</spring-boot.version>
+        <spring-boot.version>4.0.1</spring-boot.version>
         <spring-cloud.version>2025.1.0</spring-cloud.version>
         <lombok.version>1.18.42</lombok.version>
         <mapstruct.version>1.6.3</mapstruct.version>

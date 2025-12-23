@@ -42,9 +42,9 @@ services:
   discovery:
     build:
       context: .
-      dockerfile: krypto-discovery/Dockerfile
+      dockerfile: discovery/Dockerfile
       args:
-        SERVICE_NAME: krypto-discovery
+        SERVICE_NAME: discovery
         GITHUB_USERNAME: ${GITHUB_USERNAME}
         GITHUB_TOKEN: ${GITHUB_TOKEN}
     ports:
@@ -61,9 +61,9 @@ services:
   gateway:
     build:
       context: .
-      dockerfile: krypto-gateway/Dockerfile
+      dockerfile: gateway/Dockerfile
       args:
-        SERVICE_NAME: krypto-gateway
+        SERVICE_NAME: gateway
         GITHUB_USERNAME: ${GITHUB_USERNAME}
         GITHUB_TOKEN: ${GITHUB_TOKEN}
     ports:
@@ -78,6 +78,24 @@ services:
       rabbitmq:
         condition: service_healthy
       postgres:
+        condition: service_healthy
+
+  test-service:
+    build:
+      context: .
+      dockerfile: test-service/Dockerfile
+      args:
+        SERVICE_NAME: test-service
+        GITHUB_USERNAME: ${GITHUB_USERNAME}
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+    env_file:
+      - .env
+    depends_on:
+      discovery:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
 volumes:
