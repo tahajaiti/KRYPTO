@@ -1,0 +1,14 @@
+# .dockerignore
+**/target/
+**/.git/
+**/.idea/
+**/*.iml
+**/node_modules/
+**/.gradle/
+**/build/
+**/logs/
+**/*.log
+**/.settings/
+**/.project
+**/.classpath
+**/.factorypath

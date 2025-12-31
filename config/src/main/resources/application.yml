@@ -1,0 +1,44 @@
+server:
+  port: 8888
+
+spring:
+  application:
+    name: config-server
+  profiles:
+    active: native,vault
+  cloud:
+    config:
+      server:
+        native:
+          search-locations:
+            - file:/config-repo
+        vault:
+          host: vault
+          port: 8200
+          scheme: http
+          backend: secret
+          default-key: application
+          kv-version: 2
+          authentication: TOKEN
+          token: ${VAULT_TOKEN:root}
+  config:
+    import: ""
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://discovery:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+logging:
+  level:
+    org.springframework.cloud.config: DEBUG

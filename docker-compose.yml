@@ -1,102 +1,254 @@
+# ============================================
+# KRYPTO Microservices - Docker Compose
+# ============================================
+# Clean, modular configuration. All service configs come from:
+#   - config-repo/ folder (mounted into config server)
+#   - Vault (secrets)
+#
+# First-time setup:
+#   1. docker compose up -d vault
+#   2. ./scripts/vault-init.sh
+#   3. docker compose up -d
+# ============================================
+
+# --- TEMPLATES ---
+x-java-service: &java-service
+  networks:
+    - app-net
+  environment:
+    SPRING_CONFIG_IMPORT: optional:configserver:http://config:8888
+    VAULT_TOKEN: ${VAULT_TOKEN:-root}
+    JAVA_OPTS: >-
+      -XX:+UseContainerSupport
+      -XX:MaxRAMPercentage=75.0
+  deploy:
+    resources:
+      limits:
+        memory: 512M
+        cpus: '0.50'
+      reservations:
+        memory: 256M
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+x-healthcheck-defaults: &healthcheck-defaults
+  interval: 20s
+  timeout: 10s
+  retries: 5
+  start_period: 60s
+
+x-build-template: &common-build
+  context: .
+  dockerfile: Dockerfile
+
 services:
-  postgres:
-    image: postgres:18.1-alpine
+  # ============================================
+  # INFRASTRUCTURE
+  # ============================================
+
+  vault:
+    image: hashicorp/vault:1.21
+    container_name: krypto-vault
+    networks:
+      - app-net
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
-    env_file:
-      - .env
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - "${VAULT_EXTERNAL_PORT:-8200}:8200"
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_TOKEN:-root}
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+    cap_add:
+      - IPC_LOCK
+    command: server -dev
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-krypto} -d ${POSTGRES_DB:-krypto_db}" ]
+      <<: *healthcheck-defaults
+      test: ["CMD", "sh", "-c", "VAULT_ADDR=http://127.0.0.1:8200 vault status"]
       interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    command: postgres -c max_connections=200
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
   redis:
     image: redis:8.0-alpine
+    container_name: krypto-redis
+    networks:
+      - app-net
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "${REDIS_EXTERNAL_PORT:-6379}:6379"
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 5s
-      timeout: 3s
-      retries: 5
+      <<: *healthcheck-defaults
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          memory: 192M
+
+  postgres:
+    image: postgres:18.1-alpine
+    container_name: krypto-postgres
+    networks:
+      - app-net
+    ports:
+      - "${POSTGRES_EXTERNAL_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-root}
+      POSTGRES_DB: ${POSTGRES_DB:-krypto}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      <<: *healthcheck-defaults
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-krypto}"]
+      interval: 10s
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
   rabbitmq:
-    image: rabbitmq:3.13-management
+    image: rabbitmq:3.13-management-alpine
+    container_name: krypto-rabbitmq
+    networks:
+      - app-net
     ports:
-      - "${RABBITMQ_PORT:-5672}:5672"
-      - "${RABBITMQ_UI_PORT:-15672}:15672"
-    env_file:
-      - .env
+      - "${RABBITMQ_EXTERNAL_PORT:-5672}:5672"
+      - "${RABBITMQ_UI_EXTERNAL_PORT:-15672}:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-admin}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
     healthcheck:
-      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
+      <<: *healthcheck-defaults
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  # ============================================
+  # MICROSERVICES
+  # ============================================
 
   discovery:
+    <<: *java-service
     build:
-      context: .
-      dockerfile: discovery/Dockerfile
+      <<: *common-build
       args:
         SERVICE_NAME: discovery
-        GITHUB_USERNAME: ${GITHUB_USERNAME}
-        GITHUB_TOKEN: ${GITHUB_TOKEN}
+    image: krypto/discovery:${TAG:-latest}
+    container_name: krypto-discovery
     ports:
-      - "${EUREKA_PORT:-8761}:8761"
-    env_file:
-      - .env
+      - "${EUREKA_EXTERNAL_PORT:-8761}:8761"
+    environment:
+      SPRING_CONFIG_IMPORT: ""
     healthcheck:
-      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8761/actuator/health" ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      <<: *healthcheck-defaults
+      test: ["CMD-SHELL", "curl -sf http://localhost:8761/actuator/health || exit 1"]
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  config:
+    <<: *java-service
+    build:
+      <<: *common-build
+      args:
+        SERVICE_NAME: config
+    image: krypto/config:${TAG:-latest}
+    container_name: krypto-config
+    ports:
+      - "${CONFIG_EXTERNAL_PORT:-8888}:8888"
+    environment:
+      VAULT_TOKEN: ${VAULT_TOKEN:-root}
+    volumes:
+      - ./config-repo:/config-repo:ro
+    depends_on:
+      discovery:
+        condition: service_healthy
+      vault:
+        condition: service_healthy
+    healthcheck:
+      <<: *healthcheck-defaults
+      test: ["CMD-SHELL", "curl -sf http://localhost:8888/actuator/health || exit 1"]
+    deploy:
+      resources:
+        limits:
+          memory: 384M
 
   gateway:
+    <<: *java-service
     build:
-      context: .
-      dockerfile: gateway/Dockerfile
+      <<: *common-build
       args:
         SERVICE_NAME: gateway
-        GITHUB_USERNAME: ${GITHUB_USERNAME}
-        GITHUB_TOKEN: ${GITHUB_TOKEN}
+    image: krypto/gateway:${TAG:-latest}
+    container_name: krypto-gateway
     ports:
-      - "${GATEWAY_PORT:-8080}:8080"
-    env_file:
-      - .env
+      - "${GATEWAY_EXTERNAL_PORT:-8080}:8080"
+    environment:
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
     depends_on:
       discovery:
         condition: service_healthy
+      config:
+        condition: service_healthy
       redis:
         condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
+    healthcheck:
+      <<: *healthcheck-defaults
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/actuator/health || exit 1"]
 
-  test-service:
+  auth-service:
+    <<: *java-service
     build:
-      context: .
-      dockerfile: test-service/Dockerfile
+      <<: *common-build
       args:
-        SERVICE_NAME: test-service
-        GITHUB_USERNAME: ${GITHUB_USERNAME}
-        GITHUB_TOKEN: ${GITHUB_TOKEN}
-    env_file:
-      - .env
+        SERVICE_NAME: auth-service
+    image: krypto/auth-service:${TAG:-latest}
+    container_name: krypto-auth-service
     depends_on:
       discovery:
+        condition: service_healthy
+      config:
         condition: service_healthy
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      <<: *healthcheck-defaults
+      test: ["CMD-SHELL", "curl -sf http://localhost:8085/actuator/health || exit 1"]
+
+# ============================================
+# NETWORKS & VOLUMES
+# ============================================
+
+networks:
+  app-net:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: "krypto_bridge"
 
 volumes:
   postgres-data:
+    name: krypto-postgres-data
+  redis-data:
+    name: krypto-redis-data
+  rabbitmq-data:
+    name: krypto-rabbitmq-data

@@ -10,7 +10,15 @@
         <option value="$PROJECT_DIR$/krypto-gateway/pom.xml" />
         <option value="$PROJECT_DIR$/krypto-common/pom.xml" />
         <option value="$PROJECT_DIR$/krypto-test/pom.xml" />
+        <option value="$PROJECT_DIR$/auth-service/pom.xml" />
+        <option value="$PROJECT_DIR$/auth-serivce/pom.xml" />
+        <option value="$PROJECT_DIR$/config/pom.xml" />
       </list>
+    </option>
+    <option name="ignoredFiles">
+      <set>
+        <option value="$PROJECT_DIR$/test-service/pom.xml" />
+      </set>
     </option>
   </component>
   <component name="ProjectRootManager" version="2" languageLevel="JDK_21" default="true" project-jdk-name="21" project-jdk-type="JavaSDK">
