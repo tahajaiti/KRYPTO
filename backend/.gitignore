@@ -1,0 +1,39 @@
+# gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# java
+*.class
+*.jar
+*.war
+*.ear
+
+# ide
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.project
+.classpath
+*.swp
+*.swo
+*~
+
+# os
+.DS_Store
+Thumbs.db
+
+# environment
+.env
+
+# docker
+postgres-data/
+redis-data/
+rabbitmq-data/
+
+# logs
+*.log
+logs/
