@@ -1,0 +1,14 @@
+.git
+.gradle
+.idea
+.vscode
+.claude
+**/build
+**/node_modules
+*.log
+.env
+.env.example
+agent
+infrastructure
+config-repo
+docker-compose.yml
