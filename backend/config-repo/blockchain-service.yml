@@ -1,0 +1,22 @@
+server:
+  port: 8085
+
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+
+jwt:
+  secret: ${JWT_SECRET:ZTQ1MjdhNjgtMmYwZC00YTcxLTk3NTAtOGYxZjAyNjRkOTFhCg==}
+  access-token-expiration: 900000
+
+blockchain:
+  difficulty: 3
+  max-transactions-per-block: 5
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

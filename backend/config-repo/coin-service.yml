@@ -1,0 +1,51 @@
+server:
+  port: 8083
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/krypto_coins
+    username: ${POSTGRES_USER:krypto}
+    password: ${POSTGRES_PASSWORD:krypto}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  cache:
+    type: redis
+    redis:
+      time-to-live: 120s
+
+jwt:
+  secret: ${JWT_SECRET:ZTQ1MjdhNjgtMmYwZC00YTcxLTk3NTAtOGYxZjAyNjRkOTFhCg==}
+  access-token-expiration: 900000
+
+coin:
+  creation-fee: 100
+
+krypto:
+  internal-secret: ${INTERNAL_SECRET:krypto-internal-secret}
+
+market-simulation:
+  enabled: true
+  initial-delay-ms: 15000
+  tick-ms: 30000
+  max-coins-per-tick: 10
+  base-volatility-percent: 1.2
+  max-change-percent: 20
+  min-price: 0.0001
+  shock-probability: 0.12
+  shock-min-percent: 4
+  shock-max-percent: 12
+  trend-bias-percent: 0
+  volume-min-factor: 0.3
+  volume-max-factor: 2.0
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

@@ -1,0 +1,69 @@
+server:
+  port: 8080
+
+spring:
+  cloud:
+    gateway:
+      server:
+        webflux:
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowed-origins:
+                  - ${FRONTEND_ORIGIN:http://localhost:4200}
+                allowed-methods:
+                  - GET
+                  - POST
+                  - PUT
+                  - PATCH
+                  - DELETE
+                  - OPTIONS
+                allowed-headers:
+                  - "*"
+                exposed-headers:
+                  - Set-Cookie
+                allow-credentials: true
+                max-age: 3600
+          discovery:
+            locator:
+              enabled: true
+              lower-case-service-id: true
+          routes:
+            - id: user-service
+              uri: lb://user-service
+              predicates:
+                - Path=/api/users/**,/api/auth/**
+
+            - id: wallet-service
+              uri: lb://wallet-service
+              predicates:
+                - Path=/api/wallets/**
+
+            - id: coin-service
+              uri: lb://coin-service
+              predicates:
+                - Path=/api/coins/**
+
+            - id: trading-service
+              uri: lb://trading-service
+              predicates:
+                - Path=/api/trades/**,/api/orders/**
+
+            - id: blockchain-service
+              uri: lb://blockchain-service
+              predicates:
+                - Path=/api/blockchain/**
+
+            - id: gamification-service
+              uri: lb://gamification-service
+              predicates:
+                - Path=/api/challenges/**,/api/badges/**,/api/leaderboard/**
+
+management:
+  endpoint:
+    gateway:
+      access: read-only
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway

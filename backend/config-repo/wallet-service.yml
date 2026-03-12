@@ -1,0 +1,30 @@
+server:
+  port: 8082
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/krypto_wallets
+    username: ${POSTGRES_USER:krypto}
+    password: ${POSTGRES_PASSWORD:krypto}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+jwt:
+  secret: ${JWT_SECRET:ZTQ1MjdhNjgtMmYwZC00YTcxLTk3NTAtOGYxZjAyNjRkOTFhCg==}
+  access-token-expiration: 900000
+
+krypto:
+  initial-balance: 10000
+  internal-secret: ${INTERNAL_SECRET:krypto-internal-secret}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
