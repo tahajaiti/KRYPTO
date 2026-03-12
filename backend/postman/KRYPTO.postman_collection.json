@@ -1,0 +1,545 @@
+{
+  "info": {
+    "_postman_id": "b1ddf1a4-71f4-4b4f-84a1-43e2bbfb8a53",
+    "name": "KRYPTO API (Gateway)",
+    "description": "Full KRYPTO API collection routed through api-gateway. Base URL defaults to {{baseUrl}} (http://localhost:8080).\n\nAuth model:\n- Register/Login set HttpOnly cookies (access/refresh) via /api/auth endpoints.\n- In Postman, use the same host ({{baseUrl}}) so cookie jar can send auth cookies automatically.\n- You can also set Authorization: Bearer {{jwtToken}} manually for protected endpoints if needed.\n\nInternal endpoints:\n- Requests marked internal require X-Internal-Secret header with {{internalSecret}}.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "jwtToken", "value": "" },
+    { "key": "internalSecret", "value": "krypto-internal-secret" },
+    { "key": "userId", "value": "00000000-0000-0000-0000-000000000001" },
+    { "key": "adminUserId", "value": "00000000-0000-0000-0000-000000000002" },
+    { "key": "coinId", "value": "00000000-0000-0000-0000-000000000003" },
+    { "key": "orderId", "value": "00000000-0000-0000-0000-000000000004" },
+    { "key": "challengeId", "value": "00000000-0000-0000-0000-000000000005" },
+    { "key": "badgeId", "value": "00000000-0000-0000-0000-000000000006" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Registration and session lifecycle. Cookie-based auth is set by these endpoints.",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"satoshi\",\n  \"email\": \"satoshi@krypto.dev\",\n  \"password\": \"secret123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/register",
+            "description": "Create account and set auth cookies (access_token + refresh_token)."
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"satoshi\",\n  \"password\": \"secret123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "Login by username or email and set auth cookies."
+          }
+        },
+        {
+          "name": "Refresh",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/refresh",
+            "description": "Refresh access session using refresh cookie."
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/logout",
+            "description": "Invalidate refresh session and clear cookies."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "description": "User profile and admin user management.",
+      "item": [
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}", "disabled": true }
+            ],
+            "url": "{{baseUrl}}/api/users/me",
+            "description": "Get current authenticated user profile."
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}", "disabled": true }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"satoshi_v2\",\n  \"avatar\": \"https://example.com/avatar.png\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users/me",
+            "description": "Update current user profile fields."
+          }
+        },
+        {
+          "name": "Get User By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/users/{{userId}}",
+            "description": "Get public user profile by id."
+          }
+        },
+        {
+          "name": "List Users (Admin)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/users?page=0&size=20&sort=createdAt,desc",
+            "description": "Admin-only paginated list of users."
+          }
+        },
+        {
+          "name": "Update User Role (Admin)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/users/{{userId}}/role?role=ADMIN",
+            "description": "Admin-only role change. Role values: PLAYER, ADMIN."
+          }
+        },
+        {
+          "name": "Update User Status (Admin)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/users/{{userId}}/status?enabled=true",
+            "description": "Admin-only enable/disable account."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wallets",
+      "description": "Balances, net worth, transfers, and internal settlement/mint endpoints.",
+      "item": [
+        {
+          "name": "Get My Wallet",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/wallets/me",
+            "description": "Get current user's wallet summary."
+          }
+        },
+        {
+          "name": "Get Wallet By User Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/wallets/{{userId}}",
+            "description": "Get wallet for target user (self/admin guarded by service)."
+          }
+        },
+        {
+          "name": "Get User Balances",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/wallets/{{userId}}/balances",
+            "description": "Get all coin balances for a user."
+          }
+        },
+        {
+          "name": "Debit KRYP",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 100.0\n}"
+            },
+            "url": "{{baseUrl}}/api/wallets/{{userId}}/debit/kryp",
+            "description": "Debit KRYP from a user wallet."
+          }
+        },
+        {
+          "name": "Settle Trade (Internal)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Internal-Secret", "value": "{{internalSecret}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"buyerId\": \"{{userId}}\",\n  \"sellerId\": \"{{adminUserId}}\",\n  \"coinId\": \"{{coinId}}\",\n  \"coinSymbol\": \"SAT\",\n  \"amount\": 10.5,\n  \"price\": 2.5,\n  \"fee\": 0.1\n}"
+            },
+            "url": "{{baseUrl}}/api/wallets/internal/trades/settle",
+            "description": "Internal endpoint used by trading-service for atomic settlement."
+          }
+        },
+        {
+          "name": "Mint Coin (Internal)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Internal-Secret", "value": "{{internalSecret}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"coinId\": \"{{coinId}}\",\n  \"symbol\": \"SAT\",\n  \"amount\": 1000000\n}"
+            },
+            "url": "{{baseUrl}}/api/wallets/internal/coins/mint",
+            "description": "Internal endpoint used by coin-service on creation/distribution."
+          }
+        },
+        {
+          "name": "Get My Net Worth",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/wallets/me/net-worth",
+            "description": "Get current authenticated user's net worth in KRYP equivalents."
+          }
+        },
+        {
+          "name": "Get Net Worth By User Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/wallets/{{userId}}/net-worth",
+            "description": "Get net worth for user (self/admin guarded by service)."
+          }
+        },
+        {
+          "name": "Transfer KRYP",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"toUserId\": \"{{adminUserId}}\",\n  \"amount\": 50.0\n}"
+            },
+            "url": "{{baseUrl}}/api/wallets/transfer/kryp",
+            "description": "Transfer KRYP from current user to another user."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Coins",
+      "description": "Coin creation, listing, lookup, pricing, and internal trade-price recording.",
+      "item": [
+        {
+          "name": "Create Coin",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Satoshi Coin\",\n  \"symbol\": \"SAT\",\n  \"image\": \"https://example.com/sat.png\",\n  \"initialSupply\": 1000000\n}"
+            },
+            "url": "{{baseUrl}}/api/coins",
+            "description": "Create a new coin. Deducts creation fee via wallet-service integration."
+          }
+        },
+        {
+          "name": "Get Coin By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/coins/{{coinId}}",
+            "description": "Fetch coin metadata by id."
+          }
+        },
+        {
+          "name": "List/Search Coins",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/coins?query=SAT&page=0&size=20&sort=createdAt,desc",
+            "description": "Paginated coin listing with optional search query."
+          }
+        },
+        {
+          "name": "Get Coin Price",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/coins/{{coinId}}/price",
+            "description": "Get latest price snapshot for a coin."
+          }
+        },
+        {
+          "name": "Record Trade Price (Internal)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Internal-Secret", "value": "{{internalSecret}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 2.25,\n  \"volume\": 100.0\n}"
+            },
+            "url": "{{baseUrl}}/api/coins/internal/{{coinId}}/trades",
+            "description": "Internal endpoint used by trading-service to persist trade-derived price movement."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Trading",
+      "description": "Order placement, cancellations, and trade history/leaderboard.",
+      "item": [
+        {
+          "name": "Place Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"coinId\": \"{{coinId}}\",\n  \"type\": \"LIMIT\",\n  \"side\": \"BUY\",\n  \"price\": 2.50,\n  \"amount\": 10\n}"
+            },
+            "url": "{{baseUrl}}/api/trades/orders",
+            "description": "Place market/limit order. Enum hints: type=MARKET|LIMIT, side=BUY|SELL."
+          }
+        },
+        {
+          "name": "Get Order By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/trades/orders/{{orderId}}",
+            "description": "Get single order details."
+          }
+        },
+        {
+          "name": "Get My Orders",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/trades/orders/me?page=0&size=20&sort=createdAt,desc",
+            "description": "Paginated current-user orders."
+          }
+        },
+        {
+          "name": "Cancel Order",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/trades/orders/{{orderId}}/cancel",
+            "description": "Cancel an open order."
+          }
+        },
+        {
+          "name": "Get My Trades",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/trades/me?page=0&size=20&sort=executedAt,desc",
+            "description": "Paginated current-user trade executions."
+          }
+        },
+        {
+          "name": "Get Trades By Coin",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/trades/coin/{{coinId}}?page=0&size=20&sort=executedAt,desc",
+            "description": "Paginated trades for one coin market."
+          }
+        },
+        {
+          "name": "Trading Leaderboard",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/trades/leaderboard?limit=10",
+            "description": "Trading leaderboard (cached)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Blockchain",
+      "description": "Custom blockchain transaction intake, mining, and verification endpoints.",
+      "item": [
+        {
+          "name": "Add Transaction",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"TRADE\",\n  \"fromUserId\": \"{{userId}}\",\n  \"toUserId\": \"{{adminUserId}}\",\n  \"coinSymbol\": \"SAT\",\n  \"amount\": 10.5,\n  \"fee\": 0.1\n}"
+            },
+            "url": "{{baseUrl}}/api/blockchain/transactions",
+            "description": "Add transaction into pending set. Transaction type enum depends on blockchain model."
+          }
+        },
+        {
+          "name": "Mine Pending Transactions (Admin)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/blockchain/mine",
+            "description": "Admin-only block mining operation."
+          }
+        },
+        {
+          "name": "Get Latest Block",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/blockchain/latest",
+            "description": "Get latest block in chain."
+          }
+        },
+        {
+          "name": "List Blocks",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/blockchain?page=0&size=20",
+            "description": "Paginated block explorer endpoint."
+          }
+        },
+        {
+          "name": "Verify Chain (Admin)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/blockchain/verify",
+            "description": "Admin-only full chain validation check."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Gamification",
+      "description": "Challenges, badges, and gamification leaderboard endpoints.",
+      "item": [
+        {
+          "name": "Get Active Challenges",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/challenges",
+            "description": "List active challenges."
+          }
+        },
+        {
+          "name": "Get Challenges By Type",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/challenges/type/DAILY",
+            "description": "Filter by challenge type. Enum hints: DAILY, WEEKLY, SEASONAL."
+          }
+        },
+        {
+          "name": "Get Challenge By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/challenges/{{challengeId}}",
+            "description": "Get one challenge definition."
+          }
+        },
+        {
+          "name": "Get My Challenges",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/challenges/user/my-challenges",
+            "description": "Current user's challenge progress list."
+          }
+        },
+        {
+          "name": "Get User Challenges By UserId",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/challenges/user/{{userId}}",
+            "description": "Fetch challenge progress for a specific user id."
+          }
+        },
+        {
+          "name": "Get My Progress For Challenge",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/challenges/{{challengeId}}/user/my-progress",
+            "description": "Current user's progress for one challenge."
+          }
+        },
+        {
+          "name": "Get Active Badges",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/badges",
+            "description": "List active badges."
+          }
+        },
+        {
+          "name": "Get Badge By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/badges/{{badgeId}}",
+            "description": "Get one badge definition."
+          }
+        },
+        {
+          "name": "Get My Badges",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/badges/user/my-badges",
+            "description": "Current user's earned badges."
+          }
+        },
+        {
+          "name": "Get User Badges By UserId",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/badges/user/{{userId}}",
+            "description": "Fetch earned badges for a specific user id."
+          }
+        },
+        {
+          "name": "Gamification Leaderboard",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/leaderboard?limit=10",
+            "description": "Cached gamification leaderboard."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "description": "Useful actuator health checks for local debugging.",
+      "item": [
+        {
+          "name": "Gateway Health",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/actuator/health",
+            "description": "Health of API gateway process."
+          }
+        },
+        {
+          "name": "Gateway Routes Actuator",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/actuator/gateway/routes",
+            "description": "Inspect gateway route registration."
+          }
+        }
+      ]
+    }
+  ]
+}
