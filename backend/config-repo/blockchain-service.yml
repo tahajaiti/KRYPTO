@@ -6,6 +6,16 @@ spring:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+  rabbitmq:
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          initial-interval: 1000
+          multiplier: 2.0
+          max-attempts: 3
+          max-interval: 5000
 
 jwt:
   secret: ${JWT_SECRET:ZTQ1MjdhNjgtMmYwZC00YTcxLTk3NTAtOGYxZjAyNjRkOTFhCg==}
@@ -14,6 +24,10 @@ jwt:
 blockchain:
   difficulty: 3
   max-transactions-per-block: 5
+  idempotency-window-size: 10000
+  persistence:
+    enabled: true
+    file-path: data/blockchain/state.json
 
 management:
   endpoints:
