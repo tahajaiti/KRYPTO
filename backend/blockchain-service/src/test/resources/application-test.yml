@@ -1,0 +1,21 @@
+spring:
+  rabbitmq:
+    listener:
+      simple:
+        auto-startup: false
+      direct:
+        auto-startup: false
+
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
+
+blockchain:
+  difficulty: 2
+  max-transactions-per-block: 3
+  idempotency-window-size: 1000
+  persistence:
+    enabled: true
+    file-path: build/test-data/blockchain-state.json
