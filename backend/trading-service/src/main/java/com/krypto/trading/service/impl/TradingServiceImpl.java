@@ -274,7 +274,8 @@ public class TradingServiceImpl implements com.krypto.trading.service.TradingSer
                     .build();
             tradeRepository.save(trade);
 
-            publishToBlockchain(sellerId, buyerId, coinPrice.getSymbol(), tradeAmount, fee);
+            publishToBlockchain(trade.getId(), trade.getExecutedAt(), sellerId, buyerId, coinPrice.getSymbol(), tradeAmount, fee);
+            publishToGamification(trade.getId(), buyerId, sellerId, takerOrder.getCoinId(), tradeAmount, executionPrice, notional);
 
             takerOrder.setFilledAmount(takerOrder.getFilledAmount().add(tradeAmount));
             makerOrder.setFilledAmount(makerOrder.getFilledAmount().add(tradeAmount));
@@ -400,13 +401,17 @@ public class TradingServiceImpl implements com.krypto.trading.service.TradingSer
         }
     }
 
-    private void publishToBlockchain(UUID fromUserId,
+    private void publishToBlockchain(UUID tradeId,
+                                     Instant executedAt,
+                                     UUID fromUserId,
                                      UUID toUserId,
                                      String coinSymbol,
                                      BigDecimal amount,
                                      BigDecimal fee) {
         Map<String, Object> message = Map.of(
                 "type", "TRADE",
+                "sourceEventId", tradeId.toString(),
+                "eventTimestamp", executedAt.toEpochMilli(),
                 "fromUserId", fromUserId.toString(),
                 "toUserId", toUserId.toString(),
                 "coinSymbol", coinSymbol,
@@ -420,6 +425,53 @@ public class TradingServiceImpl implements com.krypto.trading.service.TradingSer
                 message
         );
     }
+
+        private void publishToGamification(UUID tradeId,
+                           UUID buyerId,
+                           UUID sellerId,
+                           UUID coinId,
+                           BigDecimal amount,
+                           BigDecimal price,
+                           BigDecimal notional) {
+        long quantity = amount.setScale(0, RoundingMode.HALF_UP).longValue();
+        long priceInKryp = price.setScale(0, RoundingMode.HALF_UP).longValue();
+        long notionalValue = notional.setScale(0, RoundingMode.HALF_UP).longValue();
+        long executedAt = Instant.now().toEpochMilli();
+
+        Map<String, Object> buyerMessage = Map.of(
+            "tradeId", tradeId.toString(),
+            "userId", buyerId.toString(),
+            "coinId", coinId.toString(),
+            "quantity", quantity,
+            "priceInKryp", priceInKryp,
+            "notionalValue", notionalValue,
+            "side", "BUY",
+            "executedAt", executedAt
+        );
+
+        Map<String, Object> sellerMessage = Map.of(
+            "tradeId", tradeId.toString(),
+            "userId", sellerId.toString(),
+            "coinId", coinId.toString(),
+            "quantity", quantity,
+            "priceInKryp", priceInKryp,
+            "notionalValue", notionalValue,
+            "side", "SELL",
+            "executedAt", executedAt
+        );
+
+        rabbitTemplate.convertAndSend(
+            RabbitMQConfig.GAMIFICATION_EXCHANGE,
+            RabbitMQConfig.TRADE_EXECUTED_ROUTING_KEY,
+            buyerMessage
+        );
+
+        rabbitTemplate.convertAndSend(
+            RabbitMQConfig.GAMIFICATION_EXCHANGE,
+            RabbitMQConfig.TRADE_EXECUTED_ROUTING_KEY,
+            sellerMessage
+        );
+        }
 
     private static class LeaderboardAccumulator {
         private BigDecimal totalVolume = BigDecimal.ZERO;
