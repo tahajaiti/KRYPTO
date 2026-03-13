@@ -6,6 +6,13 @@ import java.util.List;
 
 public interface GamificationService {
     List<LeaderboardEntryResponse> getLeaderboard(int limit);
-    void processTradeEvent(String userId, Long notionalValue);
+    void processTradeEvent(String userId, Long quantity, Long notionalValue);
+    void processCoinCreatedEvent(String userId);
+    void processWalletValueSnapshot(String userId, Long walletValue);
+
+    default void processTradeEvent(String userId, Long notionalValue) {
+        processTradeEvent(userId, 0L, notionalValue);
+    }
+
     void awardChallengeCompletionBadge(String userId, String challengeName);
 }
