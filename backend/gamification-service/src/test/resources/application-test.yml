@@ -20,6 +20,18 @@ spring:
         format_sql: true
   cache:
     type: simple
+  rabbitmq:
+    listener:
+      simple:
+        auto-startup: false
+      direct:
+        auto-startup: false
+
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
 
 jwt:
   secret: ZTQ1MjdhNjgtMmYwZC00YTcxLTk3NTAtOGYxZjAyNjRkOTFhCg==
