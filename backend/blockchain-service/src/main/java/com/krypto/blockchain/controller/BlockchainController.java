@@ -7,7 +7,10 @@ import com.krypto.blockchain.dto.response.TransactionResponse;
 import com.krypto.blockchain.service.BlockchainService;
 import com.krypto.common.dto.ApiResponse;
 import com.krypto.common.dto.PageResponse;
+import com.krypto.common.exception.BusinessException;
+import com.krypto.common.exception.ErrorCode;
 import com.krypto.common.security.AuthorizationUtils;
+import com.krypto.common.security.JwtPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -31,7 +34,17 @@ public class BlockchainController {
             Authentication authentication,
             @Valid @RequestBody AddTransactionRequest request
     ) {
-        AuthorizationUtils.requirePrincipal();
+        JwtPrincipal principal = AuthorizationUtils.requirePrincipal();
+        String callerUserId = principal.userId() != null ? principal.userId().toString() : null;
+
+        if (callerUserId != null && !callerUserId.isBlank()) {
+            if (request.getFromUserId() == null || request.getFromUserId().isBlank()) {
+                request.setFromUserId(callerUserId);
+            } else if (!request.getFromUserId().equals(callerUserId) && !AuthorizationUtils.hasRole("ADMIN")) {
+                throw new BusinessException(ErrorCode.FORBIDDEN, "cannot submit transaction for another user");
+            }
+        }
+
         return ResponseEntity.ok(ApiResponse.ok(blockchainService.addTransaction(request)));
     }
 
