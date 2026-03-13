@@ -28,4 +28,8 @@ public class AddTransactionRequest {
     private BigDecimal amount;
 
     private BigDecimal fee;
+
+    private String sourceEventId;
+
+    private Long eventTimestamp;
 }
