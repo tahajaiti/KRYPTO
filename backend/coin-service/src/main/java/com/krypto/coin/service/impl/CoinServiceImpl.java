@@ -3,12 +3,14 @@ package com.krypto.coin.service.impl;
 import com.krypto.coin.client.WalletClient;
 import com.krypto.coin.client.dto.DebitKrypRequest;
 import com.krypto.coin.client.dto.MintCoinRequest;
+import com.krypto.coin.config.RabbitMQConfig;
 import com.krypto.coin.dto.request.CreateCoinRequest;
 import com.krypto.coin.dto.request.RecordTradeRequest;
 import com.krypto.coin.dto.response.CoinPriceResponse;
 import com.krypto.coin.dto.response.CoinResponse;
 import com.krypto.coin.entity.Coin;
 import com.krypto.coin.entity.PriceHistory;
+import com.krypto.coin.event.CoinCreatedEvent;
 import com.krypto.coin.mapper.CoinMapper;
 import com.krypto.coin.repository.CoinRepository;
 import com.krypto.coin.repository.PriceHistoryRepository;
@@ -20,6 +22,8 @@ import com.krypto.common.exception.ResourceNotFoundException;
 import com.krypto.common.security.AuthorizationUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -38,12 +42,14 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CoinServiceImpl implements CoinService {
 
     private final CoinRepository coinRepository;
     private final PriceHistoryRepository priceHistoryRepository;
     private final CoinMapper coinMapper;
     private final WalletClient walletClient;
+    private final RabbitTemplate rabbitTemplate;
 
     @Value("${coin.creation-fee:100}")
     private BigDecimal creationFee;
@@ -101,6 +107,7 @@ public class CoinServiceImpl implements CoinService {
         priceHistoryRepository.save(firstPrice);
 
         mintInitialSupplyToCreator(saved);
+        publishCoinCreatedEvent(saved);
 
         return coinMapper.toResponse(saved);
     }
@@ -209,6 +216,26 @@ public class CoinServiceImpl implements CoinService {
                     internalSecret);
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.SERVICE_UNAVAILABLE, "failed to mint initial supply to creator", e);
+        }
+    }
+
+    private void publishCoinCreatedEvent(Coin coin) {
+        try {
+            var event = CoinCreatedEvent.builder()
+                    .coinId(coin.getId().toString())
+                    .userId(coin.getCreatorId().toString())
+                    .symbol(coin.getSymbol())
+                    .initialSupply(coin.getInitialSupply().longValue())
+                    .createdAt(Instant.now().toEpochMilli())
+                    .build();
+
+            rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.COIN_EXCHANGE,
+                    RabbitMQConfig.COIN_CREATED_ROUTING_KEY,
+                    event
+            );
+        } catch (Exception ex) {
+            log.warn("failed to publish coin.created event for coin {}", coin.getId(), ex);
         }
     }
 

@@ -11,10 +11,17 @@ public class RabbitMQConfig {
 
     public static final String MARKET_EXCHANGE = "market.exchange";
     public static final String MARKET_SIMULATED_ROUTING_KEY = "market.simulated";
+    public static final String COIN_EXCHANGE = "coin.exchange";
+    public static final String COIN_CREATED_ROUTING_KEY = "coin.created";
 
     @Bean
     public TopicExchange marketExchange() {
         return new TopicExchange(MARKET_EXCHANGE);
+    }
+
+    @Bean
+    public TopicExchange coinExchange() {
+        return new TopicExchange(COIN_EXCHANGE);
     }
 
     @Bean

@@ -217,8 +217,11 @@ public class MarketSimulationServiceImpl implements MarketSimulationService {
     }
 
     private void publishSimulationEvent(String coinSymbol, BigDecimal amount, BigDecimal fee) {
+        long now = Instant.now().toEpochMilli();
         Map<String, Object> message = Map.of(
                 "type", "TRADE",
+            "sourceEventId", "market-sim-" + coinSymbol + "-" + now,
+            "eventTimestamp", now,
                 "fromUserId", "MARKET_SIM",
                 "toUserId", "MARKET_SIM",
                 "coinSymbol", coinSymbol,
