@@ -9,6 +9,5 @@ include(
     "wallet-service",
     "coin-service",
     "trading-service",
-    "blockchain-service",
-    "gamification-service"
+    "blockchain-service"
 )
