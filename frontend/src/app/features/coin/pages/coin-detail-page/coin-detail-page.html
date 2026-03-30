@@ -1,0 +1,181 @@
+<section class="krypto-fade-in grid min-h-[calc(100dvh-9rem)] py-6">
+  <div class="mx-auto grid w-full max-w-6xl gap-4 px-4">
+
+    <!-- header -->
+    @if (coin(); as selectedCoin) {
+      <div class="krypto-card-header p-5">
+        <a class="text-[10px] font-semibold uppercase tracking-wider text-emerald-300/60 no-underline hover:text-emerald-200" routerLink="/markets">← Markets</a>
+        <div class="mt-3 flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            @if (selectedCoin.image) {
+              <img [src]="selectedCoin.image" [alt]="selectedCoin.symbol" class="h-12 w-12 rounded-full border-2 border-emerald-400/30 object-cover" />
+            } @else {
+              <span class="grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 text-sm font-bold text-slate-950">{{ coinInitial(selectedCoin.symbol) }}</span>
+            }
+            <div>
+              <h1 class="font-['Space_Grotesk'] text-2xl font-bold text-emerald-50 flex items-center gap-3">
+                {{ selectedCoin.name }}
+                @if (!selectedCoin.active) {
+                  <span class="inline-flex items-center gap-1 rounded-full bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-tighter text-rose-400">
+                    <ng-icon name="heroExclamationCircle"></ng-icon> Trading Suspended
+                  </span>
+                }
+              </h1>
+              <p class="text-xs text-emerald-100/50">{{ selectedCoin.symbol }} · Created {{ selectedCoin.createdAt | date:'MMM d, yyyy' }}</p>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button class="krypto-btn-secondary text-xs" type="button" [disabled]="isRefreshing()" (click)="reload()">
+              @if (isRefreshing()) { Refreshing... } @else { <ng-icon name="heroArrowPath"></ng-icon> Refresh }
+            </button>
+            <button
+              class="rounded-lg border px-3 py-2 text-xs font-semibold transition"
+              [ngClass]="isInvesting() ? 'border-amber-400/30 bg-amber-900/30 text-amber-200' : 'border-emerald-200/20 bg-slate-900/40 text-emerald-100/70'"
+              type="button"
+              [disabled]="isSavingPreference()"
+              (click)="toggleInvestment()"
+            >
+              @if (isSavingPreference()) { Saving... }
+              @else {
+                <ng-icon [name]="isInvesting() ? 'heroBookmark' : 'heroBookmarkSquare'"></ng-icon>
+                {{ isInvesting() ? 'Watching' : 'Watch' }}
+              }
+            </button>
+            <button class="krypto-btn-primary text-xs disabled:opacity-50 disabled:grayscale" type="button" [disabled]="!selectedCoin.active" (click)="goToTrade()"><ng-icon name="heroBolt"></ng-icon> Trade</button>
+          </div>
+        </div>
+      </div>
+    } @else {
+      <div class="krypto-card p-5">
+        <a class="text-[10px] uppercase tracking-wider text-emerald-300/60 no-underline" routerLink="/markets">← Markets</a>
+        <h1 class="mt-3 font-['Space_Grotesk'] text-2xl font-bold text-emerald-50">Coin Detail</h1>
+      </div>
+    }
+
+    @if (errorMessage(); as error) {
+      <p class="rounded-xl border border-rose-300/20 bg-rose-950/30 px-4 py-3 text-sm text-rose-200">{{ error }}</p>
+    }
+
+    @if (isLoading()) {
+      <div class="krypto-card p-6 text-sm text-emerald-100/50">Loading market detail...</div>
+    } @else if (coin(); as selectedCoin) {
+
+      <!-- live price banner -->
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <div class="krypto-stat-card text-center">
+          <p class="krypto-label">Price</p>
+          <p class="mt-1 text-lg font-bold text-emerald-300">{{ (livePrice() ?? selectedCoin.currentPrice) | number:'1.2-6' }}</p>
+          <p class="text-[10px] text-emerald-400/50">KRYP</p>
+        </div>
+        <div class="krypto-stat-card text-center">
+          <p class="krypto-label">Trend</p>
+          <p class="mt-1 text-lg font-bold" [ngClass]="priceChangePercent() >= 0 ? 'text-emerald-300' : 'text-rose-300'">
+            {{ priceChangePercent() >= 0 ? '+' : '' }}{{ priceChangePercent() | number:'1.2-2' }}%
+          </p>
+        </div>
+        <div class="krypto-stat-card text-center">
+          <p class="krypto-label">High</p>
+          <p class="mt-1 text-sm font-bold text-emerald-100">{{ (highPrice() ?? selectedCoin.currentPrice) | number:'1.2-6' }}</p>
+        </div>
+        <div class="krypto-stat-card text-center">
+          <p class="krypto-label">Low</p>
+          <p class="mt-1 text-sm font-bold text-emerald-100">{{ (lowPrice() ?? selectedCoin.currentPrice) | number:'1.2-6' }}</p>
+        </div>
+        <div class="krypto-stat-card text-center">
+          <p class="krypto-label">Mkt Cap</p>
+          <p class="mt-1 text-sm font-bold text-emerald-100">{{ selectedCoin.marketCap | number:'1.0-2' }}</p>
+        </div>
+      </div>
+
+      <!-- chart + sidebar -->
+      <div class="grid gap-4 xl:grid-cols-4">
+        <!-- chart -->
+        <div class="krypto-card p-5 xl:col-span-3">
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-sm font-semibold text-emerald-200 flex items-center gap-1.5"><ng-icon name="heroArrowTrendingUp"></ng-icon> Price History</h2>
+            <span class="text-[10px] text-emerald-100/40 text-right">{{ history().length }} data points</span>
+          </div>
+
+          @if (history().length > 1) {
+            <div class="relative rounded-xl border border-emerald-500/10 bg-slate-950/40 p-4" 
+                 (mousemove)="onMouseMove($event)" 
+                 (mouseleave)="onMouseLeave()">
+              
+              <svg viewBox="0 0 720 240" preserveAspectRatio="none" class="h-64 w-full overflow-visible">
+                <!-- Trend Line -->
+                <polyline [attr.points]="chartPolyline()" 
+                          fill="none" 
+                          stroke-width="3" 
+                          [attr.stroke]="priceChangePercent() >= 0 ? '#34d399' : '#fb7185'"
+                          class="drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]"></polyline>
+                
+                <!-- Hover Marker -->
+                @if (hoveredPoint(); as hp) {
+                  <line [attr.x1]="hp.x" y1="0" [attr.x2]="hp.x" y2="240" stroke="rgba(52,211,153,0.2)" stroke-width="1"></line>
+                  <circle [attr.cx]="hp.x" [attr.cy]="hp.y" r="6" fill="#34d399" stroke="#020617" stroke-width="3"></circle>
+                }
+              </svg>
+
+              <!-- Footer Details -->
+              <div class="mt-4 flex items-center justify-between border-t border-emerald-500/10 pt-4">
+                @if (hoveredPoint(); as hp) {
+                  <div class="flex flex-col">
+                    <span class="text-[10px] font-bold text-emerald-500/50 uppercase">{{ hp.recordedAt | date:'short' }}</span>
+                    <span class="text-xs font-mono text-emerald-50">Vol: {{ hp.volume | number:'1.1-2' }}</span>
+                  </div>
+                  <div class="text-right">
+                    <span class="text-sm font-bold text-emerald-400 font-mono">{{ hp.price | number:'1.2-6' }} KRYP</span>
+                  </div>
+                } @else {
+                  <p class="text-xs text-emerald-100/20">Slide across to view history</p>
+                }
+              </div>
+            </div>
+          } @else {
+            <p class="mt-3 text-xs text-emerald-100/40">Insufficient data points.</p>
+          }
+        </div>
+
+        <!-- sidebar: stats + creator -->
+        <div class="grid gap-4 content-start">
+          <!-- market stats -->
+          <div class="krypto-card p-4">
+            <h3 class="text-xs font-semibold text-emerald-200 flex items-center gap-1.5"><ng-icon name="heroChartBar"></ng-icon> Market Data</h3>
+            <div class="mt-3 grid gap-2">
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-emerald-100/40">Supply</span>
+                <span class="font-medium text-emerald-100">{{ selectedCoin.currentSupply | number:'1.0-2' }}</span>
+              </div>
+              @if (latestPoint(); as latest) {
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-emerald-100/40">Latest Tick</span>
+                  <span class="font-medium text-emerald-100">{{ latest.recordedAt | date:'shortTime' }}</span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- creator card -->
+          @if (creator(); as creatorUser) {
+            <div class="krypto-card p-4">
+              <h3 class="text-xs font-semibold text-cyan-200 flex items-center gap-1.5"><ng-icon name="heroUser"></ng-icon> Creator</h3>
+              <a class="mt-3 flex items-center gap-2.5 no-underline" [routerLink]="['/users', creatorUser.id]">
+                @if (creatorUser.avatar) {
+                  <img [src]="creatorUser.avatar" [alt]="creatorUser.username" class="h-8 w-8 rounded-full border border-emerald-300/20 object-cover" />
+                } @else {
+                  <span class="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 text-[10px] font-bold text-slate-950">
+                    {{ creatorUser.username.slice(0, 2).toUpperCase() }}
+                  </span>
+                }
+                <div class="min-w-0">
+                  <p class="truncate text-xs font-semibold text-emerald-100">{{ creatorUser.username }}</p>
+                  <p class="text-[10px] text-emerald-100/40">{{ creatorUser.role }}</p>
+                </div>
+              </a>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</section>
