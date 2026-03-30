@@ -2,7 +2,7 @@
 set -e
 
 # creates separate databases for each microservice that needs one
-DATABASES=("krypto_users" "krypto_wallets" "krypto_coins" "krypto_trading" "krypto_gamification")
+DATABASES=("krypto_users" "krypto_wallets" "krypto_coins" "krypto_trading" "krypto_blockchain")
 
 for db in "${DATABASES[@]}"; do
     echo "creating database: $db"
