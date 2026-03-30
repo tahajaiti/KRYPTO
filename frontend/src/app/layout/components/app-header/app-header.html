@@ -1,0 +1,95 @@
+<header class="header-main sticky top-0 z-20 border-b border-emerald-200/15 bg-slate-950/80 px-4 py-3 backdrop-blur-xl md:px-6">
+  <div class="mx-auto flex max-w-7xl items-center justify-between gap-3">
+    <!-- logo -->
+    <a class="flex items-center gap-2 no-underline" routerLink="/">
+      <span class="header-logo-icon grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-emerald-400 to-cyan-400 text-sm font-black text-slate-950">K</span>
+      <span class="font-['Space_Grotesk'] text-lg font-bold tracking-wider text-emerald-50">KRYPTO</span>
+    </a>
+
+    <!-- desktop nav -->
+    <nav class="hidden items-center gap-1 md:flex" aria-label="main navigation">
+      <a class="nav-link" routerLink="/" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="nav-link-active">Home</a>
+
+      @if (session.isAuthenticated()) {
+        <a class="nav-link" routerLink="/markets" routerLinkActive="nav-link-active">Markets</a>
+        <a class="nav-link" routerLink="/trade" routerLinkActive="nav-link-active">Trade</a>
+        <a class="nav-link" routerLink="/leaderboard" routerLinkActive="nav-link-active">Leaderboard</a>
+        <a class="nav-link" routerLink="/portfolio" routerLinkActive="nav-link-active">Portfolio</a>
+        <a class="nav-link" routerLink="/profile" routerLinkActive="nav-link-active">Profile</a>
+
+        @if (isAdmin()) {
+          <a class="nav-link nav-link-admin" routerLink="/admin" routerLinkActive="nav-link-active">Admin</a>
+        }
+      }
+    </nav>
+
+    <!-- right side -->
+    <div class="flex items-center gap-2">
+      @if (session.isAuthenticated()) {
+        <!-- kryp balance pill -->
+        <div class="balance-pill hidden items-center gap-1.5 rounded-full border border-emerald-400/25 bg-emerald-950/50 px-3 py-1.5 sm:flex">
+          <span class="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]"></span>
+          <span class="text-xs font-bold text-emerald-300">{{ formattedBalance() }}</span>
+          <span class="text-[10px] font-medium uppercase text-emerald-400/60">KRYP</span>
+        </div>
+
+        <!-- user avatar + menu -->
+        <a
+          class="flex items-center gap-2 rounded-full border border-emerald-200/20 bg-emerald-900/25 px-2.5 py-1.5 text-sm text-emerald-50 transition hover:border-emerald-200/40 hover:bg-emerald-900/40"
+          routerLink="/profile"
+        >
+          @if (user()?.avatar) {
+            <img
+              [src]="user()?.avatar"
+              [alt]="user()?.username + ' avatar'"
+              class="h-6 w-6 rounded-full border border-emerald-300/30 object-cover"
+            />
+          } @else {
+            <span class="grid h-6 w-6 place-items-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 text-[10px] font-bold text-slate-950">{{ userInitials() }}</span>
+          }
+          <span class="hidden max-w-24 truncate text-xs font-medium sm:inline">{{ user()?.username }}</span>
+        </a>
+
+        <!-- logout -->
+        <button
+          class="nav-link hidden text-rose-300/70 hover:text-rose-200 md:inline-flex !px-2 flex items-center justify-center"
+          type="button"
+          (click)="signOut()"
+        >
+          <ng-icon name="heroArrowRightStartOnRectangle" class="text-lg"></ng-icon>
+        </button>
+
+        <button
+          class="nav-link md:hidden !px-2 flex items-center justify-center"
+          type="button"
+          (click)="toggleMobileMenu()"
+        >
+          <ng-icon [name]="isMobileMenuOpen() ? 'heroXMark' : 'heroBars3'" class="text-lg"></ng-icon>
+        </button>
+      } @else {
+        <a class="nav-link" routerLink="/login" routerLinkActive="nav-link-active">Login</a>
+        <a class="rounded-lg bg-gradient-to-r from-emerald-400 to-cyan-400 px-4 py-2 text-xs font-bold text-slate-950 transition hover:brightness-110" routerLink="/register">Register</a>
+      }
+    </div>
+  </div>
+
+  <!-- mobile menu -->
+  @if (isMobileMenuOpen() && session.isAuthenticated()) {
+    <nav class="mobile-menu mt-3 grid gap-1 border-t border-emerald-200/10 pt-3 md:hidden" aria-label="mobile navigation">
+      <a class="nav-link-mobile flex items-center gap-2" routerLink="/" (click)="closeMobileMenu()"><ng-icon name="heroHome"></ng-icon> Home</a>
+      <a class="nav-link-mobile flex items-center gap-2" routerLink="/markets" (click)="closeMobileMenu()"><ng-icon name="heroChartBar"></ng-icon> Markets</a>
+      <a class="nav-link-mobile flex items-center gap-2" routerLink="/trade" (click)="closeMobileMenu()"><ng-icon name="heroBolt"></ng-icon> Trade</a>
+      <a class="nav-link-mobile flex items-center gap-2" routerLink="/leaderboard" (click)="closeMobileMenu()"><ng-icon name="heroTrophy"></ng-icon> Leaderboard</a>
+      <a class="nav-link-mobile flex items-center gap-2" routerLink="/portfolio" (click)="closeMobileMenu()"><ng-icon name="heroBriefcase"></ng-icon> Portfolio</a>
+      <a class="nav-link-mobile flex items-center gap-2" routerLink="/profile" (click)="closeMobileMenu()"><ng-icon name="heroUser"></ng-icon> Profile</a>
+      @if (isAdmin()) {
+        <a class="nav-link-mobile text-amber-300 flex items-center gap-2" routerLink="/admin" (click)="closeMobileMenu()"><ng-icon name="heroWrench"></ng-icon> Admin</a>
+      }
+      <div class="flex items-center gap-2 rounded-lg bg-emerald-950/40 px-3 py-2 sm:hidden">
+        <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+        <span class="text-xs font-bold text-emerald-300">{{ formattedBalance() }} KRYP</span>
+      </div>
+      <button class="nav-link-mobile text-left text-rose-300/80 flex items-center gap-2" type="button" (click)="signOut()"><ng-icon name="heroArrowRightStartOnRectangle"></ng-icon> Logout</button>
+    </nav>
+  }
+</header>
