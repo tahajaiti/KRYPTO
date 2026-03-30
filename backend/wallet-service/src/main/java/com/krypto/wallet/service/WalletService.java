@@ -1,16 +1,18 @@
 package com.krypto.wallet.service;
 
-import com.krypto.wallet.dto.request.TransferKrypRequest;
+import java.util.List;
+import java.util.UUID;
+
+import com.krypto.common.dto.PageResponse;
 import com.krypto.wallet.dto.request.DebitKrypRequest;
 import com.krypto.wallet.dto.request.MintCoinRequest;
 import com.krypto.wallet.dto.request.SettleTradeRequest;
+import com.krypto.wallet.dto.request.TransferKrypRequest;
 import com.krypto.wallet.dto.response.BalanceItemResponse;
 import com.krypto.wallet.dto.response.NetWorthResponse;
 import com.krypto.wallet.dto.response.TransferResponse;
 import com.krypto.wallet.dto.response.WalletResponse;
-
-import java.util.List;
-import java.util.UUID;
+import com.krypto.wallet.dto.response.WalletTransferItemResponse;
 
 public interface WalletService {
 
@@ -19,6 +21,8 @@ public interface WalletService {
     WalletResponse getWalletByUserId(UUID userId);
 
     List<BalanceItemResponse> getBalances(UUID userId);
+    
+    BalanceItemResponse getBalanceByCoin(UUID userId, UUID coinId);
 
     NetWorthResponse getCurrentUserNetWorth();
 
@@ -31,6 +35,8 @@ public interface WalletService {
     BalanceItemResponse mintCoinInternal(MintCoinRequest request, String internalSecret);
 
     TransferResponse transferKryp(TransferKrypRequest request);
+
+    PageResponse<WalletTransferItemResponse> getCurrentUserTransferHistory(int page, int size);
 
     void createWalletForUser(UUID userId);
 }
