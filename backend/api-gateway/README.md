@@ -21,7 +21,6 @@ Configured in `config-repo/api-gateway.yml`:
 - `/api/coins/**` -> `coin-service`
 - `/api/trades/**`, `/api/orders/**` -> `trading-service`
 - `/api/blockchain/**` -> `blockchain-service`
-- `/api/challenges/**`, `/api/badges/**`, `/api/leaderboard/**` -> `gamification-service`
 
 ## CORS
 
