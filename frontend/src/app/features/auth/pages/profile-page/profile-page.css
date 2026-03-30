@@ -1,0 +1,17 @@
+.profile-tab-panel {
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.profile-tab-active {
+  opacity: 1;
+  visibility: visible;
+  position: relative;
+}
+
+.profile-tab-hidden {
+  opacity: 0;
+  visibility: hidden;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
