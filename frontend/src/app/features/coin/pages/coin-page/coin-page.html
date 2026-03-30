@@ -1,0 +1,271 @@
+<section class="krypto-fade-in grid min-h-[calc(100dvh-9rem)] py-6">
+  <div class="mx-auto grid w-full max-w-6xl gap-4 px-4 content-start">
+
+    <!-- header -->
+    <div class="krypto-card-header p-5">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 class="font-['Space_Grotesk'] text-2xl font-bold text-emerald-50 flex items-center gap-1.5"><ng-icon name="heroCube"></ng-icon> Markets</h1>
+          <p class="mt-1 text-xs text-emerald-100/50">Browse coins, inspect prices, and discover trading opportunities.</p>
+        </div>
+        <button class="krypto-btn-primary text-xs flex items-center gap-1" type="button" (click)="openCreateModal()">
+          <ng-icon name="heroRocketLaunch"></ng-icon> Create Coin
+        </button>
+      </div>
+    </div>
+
+    <!-- messages -->
+    @if (errorMessage(); as error) {
+      <p class="rounded-xl border border-rose-300/20 bg-rose-950/30 px-4 py-3 text-sm text-rose-200">{{ error }}</p>
+    }
+    @if (successMessage(); as message) {
+      <div class="krypto-slide-up rounded-xl border border-emerald-300/20 bg-emerald-950/30 px-4 py-3 text-sm text-emerald-200">✓ {{ message }}</div>
+    }
+
+    <!-- search / filter bar -->
+    <div class="flex flex-wrap items-center gap-2 rounded-xl border border-emerald-200/10 bg-slate-900/30 p-3">
+      <div class="relative flex-1 min-w-[180px]">
+        <ng-icon name="heroMagnifyingGlass" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-emerald-100/30 text-sm"></ng-icon>
+        <input
+          class="w-full rounded-lg border border-emerald-200/15 bg-slate-950/60 pl-8 pr-3 py-2 text-xs text-emerald-50 outline-none placeholder:text-emerald-100/30 transition focus:border-emerald-400/40"
+          type="text"
+          placeholder="Search by name or symbol..."
+          [value]="query()"
+          (input)="setQuery($any($event.target).value)"
+          (keydown.enter)="search()"
+        />
+      </div>
+      <div class="flex items-center gap-1.5">
+        <button
+          class="rounded-lg border px-2.5 py-2 text-[10px] font-semibold transition"
+          type="button"
+          [class.border-emerald-400\/30]="sortBy() === 'marketCap'"
+          [class.bg-emerald-900\/40]="sortBy() === 'marketCap'"
+          [class.text-emerald-200]="sortBy() === 'marketCap'"
+          [class.border-emerald-200\/10]="sortBy() !== 'marketCap'"
+          [class.text-emerald-100\/50]="sortBy() !== 'marketCap'"
+          (click)="setSortBy('marketCap')"
+        >Mkt Cap</button>
+        <button
+          class="rounded-lg border px-2.5 py-2 text-[10px] font-semibold transition"
+          type="button"
+          [class.border-emerald-400\/30]="sortBy() === 'currentPrice'"
+          [class.bg-emerald-900\/40]="sortBy() === 'currentPrice'"
+          [class.text-emerald-200]="sortBy() === 'currentPrice'"
+          [class.border-emerald-200\/10]="sortBy() !== 'currentPrice'"
+          [class.text-emerald-100\/50]="sortBy() !== 'currentPrice'"
+          (click)="setSortBy('currentPrice')"
+        >Price</button>
+        <button
+          class="rounded-lg border px-2.5 py-2 text-[10px] font-semibold transition"
+          type="button"
+          [class.border-emerald-400\/30]="sortBy() === 'createdAt'"
+          [class.bg-emerald-900\/40]="sortBy() === 'createdAt'"
+          [class.text-emerald-200]="sortBy() === 'createdAt'"
+          [class.border-emerald-200\/10]="sortBy() !== 'createdAt'"
+          [class.text-emerald-100\/50]="sortBy() !== 'createdAt'"
+          (click)="setSortBy('createdAt')"
+        >Newest</button>
+        <button
+          class="rounded-lg border border-emerald-200/10 px-2.5 py-2 text-[10px] font-semibold text-emerald-100/50 transition hover:text-emerald-100"
+          type="button"
+          (click)="toggleSortDirection()"
+        >{{ sortDirection() === 'asc' ? '↑ ASC' : '↓ DESC' }}</button>
+      </div>
+    </div>
+
+    <!-- main content grid -->
+    <div class="grid gap-4 lg:grid-cols-[1fr_280px]">
+
+      <!-- coin listing -->
+      <div>
+        @if (isLoading()) {
+          <div class="krypto-card p-6 text-xs text-emerald-100/50">Loading coins...</div>
+        } @else {
+          <div class="krypto-card overflow-hidden">
+            <table class="w-full text-xs">
+              <thead class="bg-slate-900/60 text-emerald-100/50">
+                <tr>
+                  <th class="px-3 py-2.5 text-left font-medium">Coin</th>
+                  <th class="px-3 py-2.5 text-right font-medium">Price</th>
+                  <th class="hidden px-3 py-2.5 text-right font-medium sm:table-cell">Mkt Cap</th>
+                  <th class="hidden px-3 py-2.5 text-right font-medium md:table-cell">Supply</th>
+                  <th class="px-3 py-2.5 text-center font-medium w-14">Status</th>
+                  <th class="px-3 py-2.5 text-right font-medium w-24"></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (coin of coins(); track coin.id) {
+                  <tr
+                    class="cursor-pointer border-t border-emerald-200/5 transition hover:bg-emerald-900/10"
+                    [class.bg-emerald-900\/8]="selectedCoin()?.id === coin.id"
+                    (click)="selectCoin(coin)"
+                  >
+                    <td class="px-3 py-2.5">
+                      <div class="flex items-center gap-2.5">
+                        @if (coin.image) {
+                          <img [src]="coin.image" [alt]="coin.symbol" class="h-8 w-8 rounded-full border border-emerald-200/15 object-cover" />
+                        } @else {
+                          <span class="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 text-[9px] font-bold text-slate-950">{{ coinInitial(coin.symbol) }}</span>
+                        }
+                        <div class="min-w-0">
+                          <p class="font-semibold text-emerald-50">{{ coin.symbol }}</p>
+                          <p class="truncate text-[10px] text-emerald-100/40">{{ coin.name }}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="px-3 py-2.5 text-right font-medium text-emerald-100">{{ coin.currentPrice | number:'1.2-6' }}</td>
+                    <td class="hidden px-3 py-2.5 text-right text-emerald-100/60 sm:table-cell">{{ coin.marketCap | number:'1.0-2' }}</td>
+                    <td class="hidden px-3 py-2.5 text-right text-emerald-100/40 md:table-cell">{{ coin.currentSupply | number:'1.0-2' }}</td>
+                    <td class="px-3 py-2.5 text-center">
+                      @if (coin.active) {
+                        <span class="inline-flex h-2 w-2 rounded-full bg-emerald-400" title="Active"></span>
+                      } @else {
+                        <span class="inline-flex h-2 w-2 rounded-full bg-rose-400" title="Inactive"></span>
+                      }
+                    </td>
+                    <td class="px-3 py-2.5 text-right">
+                      <button
+                        class="rounded-md bg-emerald-900/40 px-2.5 py-1 text-[10px] font-medium text-emerald-300 transition hover:bg-emerald-900/60 disabled:opacity-30 disabled:grayscale"
+                        type="button"
+                        [disabled]="!coin.active"
+                        (click)="$event.stopPropagation(); tradeCoin(coin.id)"
+                      >Trade</button>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td class="px-3 py-6 text-center text-emerald-100/40" colspan="6">No coins found matching your search.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <!-- pagination -->
+          <div class="mt-3 flex items-center justify-between">
+            <p class="text-[10px] text-emerald-100/40">{{ totalElements() }} coins total</p>
+            <div class="flex items-center gap-2">
+              <button class="krypto-btn-secondary px-2.5 py-1.5 text-[10px] disabled:opacity-40" type="button" [disabled]="!hasPrevious()" (click)="previousPage()">← Prev</button>
+              <span class="text-[10px] text-emerald-100/50">{{ pageLabel() }}</span>
+              <button class="krypto-btn-secondary px-2.5 py-1.5 text-[10px] disabled:opacity-40" type="button" [disabled]="!hasNext()" (click)="nextPage()">Next →</button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- sidebar: selected coin detail -->
+      <div class="grid gap-4 content-start">
+        <div class="krypto-card p-4">
+          <h3 class="text-xs font-semibold text-cyan-200 flex items-center gap-1.5"><ng-icon name="heroBookmarkSquare"></ng-icon> Coin Detail</h3>
+          @if (selectedCoin(); as coin) {
+            <div class="mt-3 flex items-center gap-2.5">
+              @if (coin.image) {
+                <img [src]="coin.image" [alt]="coin.symbol" class="h-10 w-10 rounded-full border border-emerald-200/20 object-cover" />
+              } @else {
+                <span class="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 text-xs font-bold text-slate-950">{{ coinInitial(coin.symbol) }}</span>
+              }
+              <div class="min-w-0">
+                <p class="truncate text-sm font-bold text-emerald-50">{{ coin.symbol }}</p>
+                <p class="truncate text-[10px] text-emerald-100/40">{{ coin.name }}</p>
+              </div>
+              @if (coin.active) {
+                <span class="ml-auto inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-950/40 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wide text-emerald-300">Active</span>
+              } @else {
+                <span class="ml-auto inline-flex items-center gap-1 rounded-full border border-rose-400/20 bg-rose-950/40 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wide text-rose-300">Inactive</span>
+              }
+            </div>
+
+            <div class="mt-4 grid gap-2.5">
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-emerald-100/40">Price</span>
+                <span class="font-bold text-emerald-300">{{ (selectedCoinLivePrice() ?? coin.currentPrice) | number:'1.2-6' }} KRYP</span>
+              </div>
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-emerald-100/40">Market Cap</span>
+                <span class="font-medium text-emerald-100">{{ coin.marketCap | number:'1.0-2' }}</span>
+              </div>
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-emerald-100/40">Supply</span>
+                <span class="font-medium text-emerald-100">{{ coin.currentSupply | number:'1.0-2' }}</span>
+              </div>
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-emerald-100/40">Creation Fee</span>
+                <span class="font-medium text-emerald-100">{{ coin.creationFee | number:'1.0-2' }} KRYP</span>
+              </div>
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-emerald-100/40">Created</span>
+                <span class="font-medium text-emerald-100">{{ coin.createdAt | date:'mediumDate' }}</span>
+              </div>
+            </div>
+
+            <div class="mt-4 grid gap-1.5">
+              <button class="krypto-btn-secondary w-full text-[10px] flex items-center justify-center gap-1" type="button" [disabled]="isRefreshingPrice()" (click)="refreshSelectedPrice()">
+                @if (isRefreshingPrice()) { Refreshing... } @else { <ng-icon name="heroArrowPath"></ng-icon> Refresh Price }
+              </button>
+              <button class="krypto-btn-secondary w-full text-[10px] flex items-center justify-center gap-1" type="button" (click)="openCoinDetail(coin.id)"><ng-icon name="heroChartBar"></ng-icon> Price Chart</button>
+              <a class="krypto-btn-secondary w-full text-[10px] flex items-center justify-center gap-1 no-underline" [routerLink]="['/users', coin.creatorId]"><ng-icon name="heroUser"></ng-icon> Creator</a>
+              <button class="krypto-btn-primary w-full text-[10px] flex items-center justify-center gap-1 disabled:opacity-50 disabled:grayscale" type="button" [disabled]="!coin.active" (click)="tradeCoin(coin.id)"><ng-icon name="heroBolt"></ng-icon> Trade</button>
+            </div>
+          } @else {
+            <div class="mt-4 flex flex-col items-center gap-2 py-6">
+              <ng-icon name="heroCursorArrowRays" class="text-2xl text-emerald-100/20"></ng-icon>
+              <p class="text-xs text-emerald-100/40 text-center">Select a coin from the list to view details.</p>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- create coin modal -->
+    @if (showCreateModal()) {
+      <div class="create-modal-backdrop fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-sm p-4" (click)="closeCreateModal()">
+        <div class="create-modal-content w-full max-w-lg rounded-2xl border border-emerald-200/15 bg-slate-900 p-6 shadow-2xl" (click)="$event.stopPropagation()">
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-bold text-emerald-50 flex items-center gap-1.5"><ng-icon name="heroRocketLaunch"></ng-icon> Launch New Coin</h2>
+            <button class="grid h-8 w-8 place-items-center rounded-lg border border-emerald-200/15 text-emerald-100/50 transition hover:text-emerald-50 hover:border-emerald-200/30" type="button" (click)="closeCreateModal()">
+              <ng-icon name="heroXMark"></ng-icon>
+            </button>
+          </div>
+          <p class="mt-1 text-xs text-emerald-100/40">Creating a coin costs KRYP. Supply will be minted to your wallet.</p>
+
+          <form class="mt-5 grid gap-4" [formGroup]="createForm" (ngSubmit)="createCoin()">
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label class="text-[10px] font-medium text-emerald-200/70" for="coinName">Coin Name</label>
+                <input id="coinName" class="mt-1 w-full rounded-lg border border-emerald-200/20 bg-slate-950/60 px-3 py-2.5 text-sm text-emerald-50 outline-none transition focus:border-emerald-400/50" type="text" formControlName="name" placeholder="e.g. Solaris" />
+                @if (createForm.controls.name.invalid && createForm.controls.name.touched) {
+                  <p class="mt-1 text-[10px] text-rose-300">Name required (2-50 characters)</p>
+                }
+              </div>
+              <div>
+                <label class="text-[10px] font-medium text-emerald-200/70" for="coinSymbol">Symbol</label>
+                <input id="coinSymbol" class="mt-1 w-full rounded-lg border border-emerald-200/20 bg-slate-950/60 px-3 py-2.5 text-sm text-emerald-50 outline-none transition focus:border-emerald-400/50 uppercase" type="text" formControlName="symbol" placeholder="e.g. SOL" />
+                @if (createForm.controls.symbol.invalid && createForm.controls.symbol.touched) {
+                  <p class="mt-1 text-[10px] text-rose-300">Symbol required (2-12 characters)</p>
+                }
+              </div>
+            </div>
+            <div>
+              <label class="text-[10px] font-medium text-emerald-200/70" for="coinImage">Image URL <span class="text-emerald-100/30">(optional)</span></label>
+              <input id="coinImage" class="mt-1 w-full rounded-lg border border-emerald-200/20 bg-slate-950/60 px-3 py-2.5 text-sm text-emerald-50 outline-none transition focus:border-emerald-400/50" type="url" formControlName="image" placeholder="https://..." />
+            </div>
+            <div>
+              <label class="text-[10px] font-medium text-emerald-200/70" for="initialSupply">Initial Supply</label>
+              <input id="initialSupply" class="mt-1 w-full rounded-lg border border-emerald-200/20 bg-slate-950/60 px-3 py-2.5 text-sm text-emerald-50 outline-none transition focus:border-emerald-400/50" type="number" min="0.000001" step="0.000001" formControlName="initialSupply" />
+              @if (createForm.controls.initialSupply.invalid && createForm.controls.initialSupply.touched) {
+                <p class="mt-1 text-[10px] text-rose-300">Must be greater than 0</p>
+              }
+            </div>
+            <div class="flex items-center justify-end gap-2 pt-1">
+              <button class="krypto-btn-secondary text-xs" type="button" (click)="closeCreateModal()">Cancel</button>
+              <button class="krypto-btn-primary text-xs" type="submit" [disabled]="isCreating()">
+                @if (isCreating()) { Creating... } @else { <ng-icon name="heroRocketLaunch"></ng-icon> Launch }
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    }
+  </div>
+</section>
