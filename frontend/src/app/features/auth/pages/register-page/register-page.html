@@ -1,0 +1,65 @@
+<section class="grid min-h-[calc(100dvh-9rem)] place-items-center py-8">
+  <div class="w-full max-w-lg rounded-2xl border border-amber-200/20 bg-amber-950/40 p-7 shadow-[0_12px_40px_rgba(0,0,0,0.35)] backdrop-blur-md">
+    <h1 class="font-['Space_Grotesk'] text-3xl font-bold text-amber-50">Create your account</h1>
+    <p class="mt-1 text-sm text-amber-100/70">Join KRYPTO and start your market journey.</p>
+
+    <form class="mt-6 grid gap-2" [formGroup]="form" (ngSubmit)="submit()">
+      <label class="mt-2 text-sm font-semibold text-amber-100" for="username">Username</label>
+      <input
+        class="rounded-xl border border-amber-200/25 bg-stone-950/80 px-3 py-3 text-amber-50 outline-none transition placeholder:text-amber-100/35 focus:border-amber-300/60"
+        id="username"
+        formControlName="username"
+        type="text"
+        autocomplete="username"
+      />
+      @if (form.controls.username.invalid && form.controls.username.touched) {
+        <p class="text-sm text-rose-300">username must be between 3 and 30 characters</p>
+      }
+
+      <label class="mt-2 text-sm font-semibold text-amber-100" for="email">Email</label>
+      <input
+        class="rounded-xl border border-amber-200/25 bg-stone-950/80 px-3 py-3 text-amber-50 outline-none transition placeholder:text-amber-100/35 focus:border-amber-300/60"
+        id="email"
+        formControlName="email"
+        type="email"
+        autocomplete="email"
+      />
+      @if (form.controls.email.invalid && form.controls.email.touched) {
+        <p class="text-sm text-rose-300">provide a valid email</p>
+      }
+
+      <label class="mt-2 text-sm font-semibold text-amber-100" for="password">Password</label>
+      <input
+        class="rounded-xl border border-amber-200/25 bg-stone-950/80 px-3 py-3 text-amber-50 outline-none transition placeholder:text-amber-100/35 focus:border-amber-300/60"
+        id="password"
+        formControlName="password"
+        type="password"
+        autocomplete="new-password"
+      />
+      @if (form.controls.password.invalid && form.controls.password.touched) {
+        <p class="text-sm text-rose-300">password must be between 6 and 100 characters</p>
+      }
+
+      @if (errorMessage(); as error) {
+        <p class="text-sm text-rose-300">{{ error }}</p>
+      }
+
+      <button
+        class="mt-4 rounded-xl bg-gradient-to-r from-amber-300 to-orange-400 px-4 py-3 font-semibold text-amber-950 transition hover:brightness-105 disabled:cursor-wait disabled:grayscale-50"
+        type="submit"
+        [disabled]="isSubmitting()"
+      >
+        @if (isSubmitting()) {
+          Creating account...
+        } @else {
+          Create account
+        }
+      </button>
+    </form>
+
+    <p class="mt-4 text-sm text-amber-100/70">
+      Already have an account?
+      <a class="font-semibold text-amber-300 transition hover:text-amber-200" routerLink="/login">Sign in</a>
+    </p>
+  </div>
+</section>
