@@ -61,8 +61,7 @@ class CoinServiceIntegrationTest {
                 "My Bitcoin",
                 "mbtc",
                 "https://example.com/mbtc.png",
-                new BigDecimal("1000000")
-        );
+                new BigDecimal("1000000"));
 
         HttpServletRequest httpRequest = new MockHttpServletRequest();
         CoinResponse created = coinService.createCoin(request, httpRequest);
@@ -70,7 +69,7 @@ class CoinServiceIntegrationTest {
         assertThat(created.getSymbol()).isEqualTo("MBTC");
         assertThat(created.getCreatorId()).isEqualTo(creatorId);
 
-        PageResponse<CoinResponse> page = coinService.listCoins("mbt", PageRequest.of(0, 20));
+        PageResponse<CoinResponse> page = coinService.listCoins("mbt", true, PageRequest.of(0, 20));
         assertThat(page.getContent()).isNotEmpty();
 
         CoinPriceResponse price = coinService.getCoinPrice(created.getId());
