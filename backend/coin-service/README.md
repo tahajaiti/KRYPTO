@@ -24,6 +24,7 @@ postgresql - `krypto_coins`
 | GET | `/api/coins` | list/search active coins (paginated, direct `PageResponse`) |
 | GET | `/api/coins/{id}` | get coin details |
 | GET | `/api/coins/{id}/price` | get current price (used by wallet-service net worth) |
+| POST | `/api/coins/prices/batch` | get prices for multiple coins in a single request (N+1 query optimization) |
 
 ## notes
 
