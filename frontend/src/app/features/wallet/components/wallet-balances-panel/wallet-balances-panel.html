@@ -1,0 +1,77 @@
+<article class="krypto-card overflow-hidden h-full flex flex-col">
+  <div class="p-4 border-b border-emerald-200/5 bg-slate-900/60 flex flex-wrap items-center justify-between gap-3">
+    <h2 class="text-xs font-bold text-emerald-50 flex items-center gap-1.5 uppercase tracking-wider">
+      <ng-icon name="heroBriefcase"></ng-icon> Asset Holdings
+    </h2>
+
+    <div class="flex flex-wrap items-center gap-2">
+      <div class="relative min-w-[120px]">
+        <ng-icon name="heroMagnifyingGlass" class="absolute left-2 top-1/2 -translate-y-1/2 text-emerald-100/30 text-[10px]"></ng-icon>
+        <input
+          class="w-full rounded-md border border-emerald-200/15 bg-slate-950/60 pl-6 pr-2 py-1.5 text-[10px] text-emerald-50 outline-none placeholder:text-emerald-100/20 focus:border-emerald-400/30 transition"
+          type="text"
+          placeholder="Filter..."
+          (input)="setFilter($any($event.target).value)"
+        />
+      </div>
+      <button
+        class="rounded-md border border-emerald-200/10 bg-emerald-900/30 px-2.5 py-1.5 text-[10px] font-bold text-emerald-400/60 transition hover:text-emerald-400"
+        type="button"
+        (click)="toggleSortDirection()"
+      >
+        {{ sortDirection() === 'asc' ? '↑ ASC' : '↓ DESC' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="flex-1 overflow-auto">
+    <table class="w-full text-[11px] border-collapse">
+      <thead class="sticky top-0 z-10 bg-slate-900/80 backdrop-blur-md text-emerald-100/40 border-b border-emerald-200/10">
+        <tr>
+          <th class="px-4 py-3 text-left font-semibold uppercase tracking-tight">Asset</th>
+          <th class="px-4 py-3 text-right font-semibold uppercase tracking-tight">Balance</th>
+          <th class="px-4 py-3 text-right font-semibold uppercase tracking-tight w-20"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-emerald-200/5">
+        @for (item of sortedBalances(); track item.coinId) {
+          <tr class="transition hover:bg-emerald-900/10 group">
+            <td class="px-4 py-3">
+              <div class="flex items-center gap-3">
+                <div class="relative">
+                  @if (coinImage(item.coinId); as image) {
+                    <img [src]="image" [alt]="item.symbol" class="h-8 w-8 rounded-full border border-emerald-200/20 object-cover shadow-sm group-hover:border-emerald-400/30 transition" />
+                  } @else {
+                    <div class="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-emerald-400/20 to-cyan-400/20 text-[10px] font-black text-emerald-400 border border-emerald-400/20 group-hover:border-emerald-400/40 transition">
+                      {{ coinInitial(item.symbol) }}
+                    </div>
+                  }
+                </div>
+                <div>
+                  <p class="font-bold text-emerald-50 leading-none">{{ item.symbol }}</p>
+                  <p class="mt-1 text-[9px] text-emerald-100/30 uppercase font-medium">Spot Wallet</p>
+                </div>
+              </div>
+            </td>
+            <td class="px-4 py-3 text-right">
+              <p class="font-bold text-emerald-50">{{ item.balance | number: '1.2-6' }}</p>
+              <p class="mt-0.5 text-[9px] text-emerald-100/30">{{ item.symbol }}</p>
+            </td>
+            <td class="px-4 py-3 text-right">
+              <button 
+                class="opacity-0 group-hover:opacity-100 transition rounded px-2 py-1 text-[9px] font-bold text-emerald-400 border border-emerald-400/20 hover:bg-emerald-400/10"
+                [routerLink]="item.symbol === 'KRYP' ? '/trade' : ['/markets', item.coinId]"
+              >View</button>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td class="px-4 py-10 text-center text-emerald-100/20 italic" colspan="3">
+              No balances found in your wallet.
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</article>
