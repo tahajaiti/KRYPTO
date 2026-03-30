@@ -4,6 +4,7 @@ import com.krypto.common.dto.ApiResponse;
 import com.krypto.common.dto.PageResponse;
 import com.krypto.common.security.AuthorizationUtils;
 import com.krypto.user.dto.request.UpdateProfileRequest;
+import com.krypto.user.dto.response.UserLookupResponse;
 import com.krypto.user.dto.response.UserResponse;
 import com.krypto.user.entity.Role;
 import com.krypto.user.service.UserService;
@@ -30,6 +31,14 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<PageResponse<UserLookupResponse>> searchUsers(
+            @RequestParam String query,
+            @PageableDefault(size = 8, sort = "username", direction = Sort.Direction.ASC) Pageable pageable) {
+        PageResponse<UserLookupResponse> response = userService.searchUsers(query, pageable);
+        return ResponseEntity.ok(response);
+    }
+
     @PutMapping("/me")
     public ResponseEntity<ApiResponse<UserResponse>> updateProfile(
             @Valid @RequestBody UpdateProfileRequest request) {
@@ -37,9 +46,21 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
+    @PutMapping("/me/tutorial")
+    public ResponseEntity<ApiResponse<UserResponse>> completeTutorial() {
+        UserResponse response = userService.completeTutorial(AuthorizationUtils.requireUsername());
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable UUID id) {
         UserResponse response = userService.getUserById(id);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    @GetMapping("/by-username/{username}")
+    public ResponseEntity<ApiResponse<UserResponse>> getUserByUsername(@PathVariable String username) {
+        UserResponse response = userService.getUserByUsername(username);
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
@@ -64,6 +85,12 @@ public class UserController {
                                                                   @RequestParam boolean enabled) {
         AuthorizationUtils.requireRole("ADMIN");
         UserResponse response = userService.updateStatus(id, enabled);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    @PostMapping("/internal/lookup")
+    public ResponseEntity<ApiResponse<java.util.Map<UUID, String>>> lookupUsernames(@RequestBody java.util.Set<UUID> ids) {
+        java.util.Map<UUID, String> response = userService.lookupUsernames(ids);
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 }
