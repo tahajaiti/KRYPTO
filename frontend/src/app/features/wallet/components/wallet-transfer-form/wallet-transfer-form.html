@@ -1,0 +1,110 @@
+<article class="krypto-card p-5 h-full">
+  <div class="flex items-center justify-between">
+    <h2 class="text-xs font-bold text-emerald-50 flex items-center gap-1.5 uppercase tracking-wider">
+      <ng-icon name="heroArrowsRightLeft"></ng-icon> Quick Transfer
+    </h2>
+    <span class="text-[9px] font-bold text-emerald-400/40 uppercase tracking-tighter">Internal Network</span>
+  </div>
+
+  <p class="mt-2 text-[10px] text-emerald-100/40 leading-relaxed">
+    Instantly send KRYP to any user by their username, email, or unique identity.
+  </p>
+
+  <form class="mt-5 grid gap-4" [formGroup]="transferForm" (ngSubmit)="submitTransfer()">
+    
+    <!-- recipient selection -->
+    <div class="grid gap-1.5">
+      <label class="text-[10px] font-bold text-emerald-200/50 uppercase px-1" for="recipientQuery">Recipient</label>
+      <div class="relative">
+        <input
+          id="recipientQuery"
+          class="w-full rounded-xl border border-emerald-200/15 bg-slate-950/60 px-3 py-3 text-xs text-emerald-50 outline-none transition focus:border-emerald-400/40 placeholder:text-emerald-100/20"
+          type="text"
+          formControlName="recipientQuery"
+          placeholder="Username, Email or UUID..."
+          autocomplete="off"
+        />
+        @if (isRecipientLookupLoading()) {
+          <div class="absolute right-3 top-1/2 -translate-y-1/2">
+            <div class="h-3 w-3 animate-spin rounded-full border border-emerald-400/40 border-t-transparent"></div>
+          </div>
+        }
+      </div>
+
+      <!-- suggestions dropdown -->
+      @if (recipientSuggestions().length > 0) {
+        <div class="krypto-slide-up mt-1 max-h-48 overflow-auto rounded-xl border border-emerald-200/15 bg-slate-950 p-1 shadow-2xl z-20">
+          @for (recipient of recipientSuggestions(); track recipient.id) {
+            <button
+              class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition hover:bg-emerald-900/30 group"
+              type="button"
+              (click)="selectRecipient(recipient)"
+            >
+              <div class="grid h-7 w-7 place-items-center rounded-full bg-emerald-950/50 text-[10px] font-bold text-emerald-400 border border-emerald-400/10 group-hover:border-emerald-400/30">
+                {{ recipient.username.charAt(0).toUpperCase() }}
+              </div>
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-emerald-50 truncate">{{ recipient.username }}</p>
+                <p class="text-[9px] text-emerald-100/30 truncate">{{ recipient.email }}</p>
+              </div>
+            </button>
+          }
+        </div>
+      }
+
+      @if (selectedRecipient(); as recipient) {
+        <div class="flex items-center justify-between rounded-lg bg-emerald-950/30 px-3 py-2 border border-emerald-400/10">
+          <span class="text-[10px] text-emerald-400 font-bold">✓ Selected: {{ recipient.username }}</span>
+          <button class="text-[10px] text-emerald-400/40 hover:text-emerald-400" type="button" (click)="clearRecipient()">Change</button>
+        </div>
+      }
+
+      @if (transferForm.controls.toUserId.invalid && transferForm.controls.recipientQuery.touched) {
+        <p class="px-1 text-[9px] text-rose-400 font-medium">Please select a valid recipient.</p>
+      }
+    </div>
+
+    <!-- amount selection -->
+    <div class="grid gap-1.5">
+      <div class="flex items-center justify-between px-1">
+        <label class="text-[10px] font-bold text-emerald-200/50 uppercase" for="amount">Amount</label>
+        <span class="text-[9px] text-emerald-400/30 font-bold uppercase italic">No Fee</span>
+      </div>
+      <div class="relative">
+        <input
+          id="amount"
+          class="w-full rounded-xl border border-emerald-200/15 bg-slate-950/60 px-3 py-3 text-xs text-emerald-50 outline-none transition focus:border-emerald-400/40 placeholder:text-emerald-100/20"
+          type="number"
+          step="0.000001"
+          min="0.000001"
+          formControlName="amount"
+          placeholder="0.00"
+        />
+        <div class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-emerald-400/40">KRYP</div>
+      </div>
+      @if (transferForm.controls.amount.invalid && transferForm.controls.amount.touched) {
+        <p class="px-1 text-[9px] text-rose-400 font-medium">Please enter a valid amount.</p>
+      }
+    </div>
+
+    @if (submitMessage(); as message) {
+      <div class="rounded-lg bg-emerald-950/20 p-2 text-center text-[10px] text-emerald-300 border border-emerald-300/10">
+        {{ message }}
+      </div>
+    }
+
+    <button
+      class="krypto-btn-primary w-full flex items-center justify-center gap-2 py-3.5 mt-2 shadow-emerald-400/10"
+      type="submit"
+      [disabled]="isSubmitting() || transferForm.invalid"
+    >
+      @if (isSubmitting()) {
+        <div class="h-3 w-3 animate-spin rounded-full border-2 border-slate-950 border-t-transparent"></div>
+        Processing...
+      } @else {
+        <ng-icon name="heroArrowsRightLeft"></ng-icon> Confirm Transfer
+      }
+    </button>
+  </form>
+
+</article>
