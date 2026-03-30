@@ -55,6 +55,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/users/search").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/users/by-username/*").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/users/*").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/users").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/users/*/role").hasRole("ADMIN")
