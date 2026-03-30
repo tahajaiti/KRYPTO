@@ -17,4 +17,5 @@ public class CoinPriceResponse {
     private UUID coinId;
     private String symbol;
     private BigDecimal currentPrice;
+    private boolean active;
 }
