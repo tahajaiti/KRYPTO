@@ -1,0 +1,228 @@
+<section class="krypto-fade-in grid min-h-[calc(100dvh-9rem)] py-6">
+  <div class="mx-auto w-full max-w-4xl grid gap-4 content-start">
+
+    <!-- profile header card -->
+    @if (user(); as currentUser) {
+      <div class="krypto-card-header flex flex-wrap items-center justify-between gap-4 p-5">
+        <div class="flex items-center gap-4">
+          @if (avatarPreview() && !avatarLoadFailed()) {
+            <img [src]="avatarPreview()" [alt]="currentUser.username + ' avatar'" class="h-14 w-14 rounded-full border-2 border-emerald-400/30 object-cover" (error)="onAvatarError()" />
+          } @else {
+            <div class="grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 text-lg font-bold text-slate-950">{{ userInitials() }}</div>
+          }
+          <div>
+            <h1 class="font-['Space_Grotesk'] text-xl font-bold text-emerald-50">{{ currentUser.username }}</h1>
+            <p class="text-xs text-emerald-100/60">{{ currentUser.email }} · {{ currentUser.role }}</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span
+            class="krypto-badge"
+            [class.border-emerald-400\/30]="currentUser.enabled"
+            [class.bg-emerald-950\/40]="currentUser.enabled"
+            [class.text-emerald-300]="currentUser.enabled"
+            [class.border-rose-400\/30]="!currentUser.enabled"
+            [class.bg-rose-950\/40]="!currentUser.enabled"
+            [class.text-rose-300]="!currentUser.enabled"
+          >
+            {{ currentUser.enabled ? 'Active' : 'Disabled' }}
+          </span>
+          <button class="krypto-btn-secondary text-xs text-rose-300/70 hover:text-rose-200" type="button" (click)="signOut()" [disabled]="isSigningOut()">
+            {{ isSigningOut() ? 'Signing out...' : 'Sign out' }}
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- quick stats -->
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div class="krypto-stat-card text-center">
+        <p class="krypto-label">Net Worth</p>
+        <p class="mt-1 text-lg font-bold text-emerald-300">
+          @if (netWorth(); as nw) { {{ nw.totalNetWorthInKryp | number:'1.0-2' }} } @else { — }
+        </p>
+        <p class="text-[10px] text-emerald-400/50">KRYP</p>
+      </div>
+      <div class="krypto-stat-card text-center">
+        <p class="krypto-label">Watched Coins</p>
+        <p class="mt-1 text-lg font-bold text-violet-300">{{ watchedCoins().length }}</p>
+        <p class="text-[10px] text-violet-400/50">Tracking</p>
+      </div>
+      <div class="krypto-stat-card text-center">
+        <p class="krypto-label">Member Since</p>
+        <p class="mt-1 text-sm font-bold text-cyan-300">{{ user()?.createdAt | date:'MMM yyyy' }}</p>
+      </div>
+    </div>
+
+    <!-- tabs -->
+    <div class="grid grid-cols-3 gap-1 rounded-xl border border-emerald-200/10 bg-slate-900/40 p-1" role="tablist">
+      <button
+        role="tab"
+        [attr.aria-selected]="activeTab() === 'settings'"
+        class="flex h-10 w-full items-center justify-center gap-1.5 rounded-lg border px-3 text-xs font-semibold tracking-wide transition-colors"
+        [class.bg-emerald-900\/60]="activeTab() === 'settings'"
+        [class.text-emerald-50]="activeTab() === 'settings'"
+        [class.border-emerald-400\/30]="activeTab() === 'settings'"
+        [class.border-transparent]="activeTab() !== 'settings'"
+        [class.text-emerald-100\/60]="activeTab() !== 'settings'"
+        (click)="setTab('settings')"
+      ><ng-icon name="heroCog6Tooth"></ng-icon> Settings</button>
+      <button
+        role="tab"
+        [attr.aria-selected]="activeTab() === 'watchlist'"
+        class="flex h-10 w-full items-center justify-center gap-1.5 rounded-lg border px-3 text-xs font-semibold tracking-wide transition-colors"
+        [class.bg-emerald-900\/60]="activeTab() === 'watchlist'"
+        [class.text-emerald-50]="activeTab() === 'watchlist'"
+        [class.border-emerald-400\/30]="activeTab() === 'watchlist'"
+        [class.border-transparent]="activeTab() !== 'watchlist'"
+        [class.text-emerald-100\/60]="activeTab() !== 'watchlist'"
+        (click)="setTab('watchlist')"
+      ><ng-icon name="heroBookmark"></ng-icon> Watchlist</button>
+      <button
+        role="tab"
+        [attr.aria-selected]="activeTab() === 'community'"
+        class="flex h-10 w-full items-center justify-center gap-1.5 rounded-lg border px-3 text-xs font-semibold tracking-wide transition-colors"
+        [class.bg-emerald-900\/60]="activeTab() === 'community'"
+        [class.text-emerald-50]="activeTab() === 'community'"
+        [class.border-emerald-400\/30]="activeTab() === 'community'"
+        [class.border-transparent]="activeTab() !== 'community'"
+        [class.text-emerald-100\/60]="activeTab() !== 'community'"
+        (click)="setTab('community')"
+      ><ng-icon name="heroUsers"></ng-icon> Community</button>
+    </div>
+
+    <!-- tab panels container -->
+    <div class="relative min-h-[280px]">
+
+      <!-- settings tab -->
+      <div
+        role="tabpanel"
+        class="profile-tab-panel"
+        [class.profile-tab-active]="activeTab() === 'settings'"
+        [class.profile-tab-hidden]="activeTab() !== 'settings'"
+      >
+        <div class="krypto-card p-5">
+          <h2 class="text-sm font-semibold text-emerald-100">Edit Profile</h2>
+          <form class="mt-4 grid gap-3" [formGroup]="form" (ngSubmit)="saveProfile()">
+            <div>
+              <label class="text-xs font-medium text-emerald-200/70" for="username">Username</label>
+              <input
+                id="username"
+                class="mt-1 w-full rounded-lg border border-emerald-200/20 bg-slate-950/60 px-3 py-2.5 text-sm text-emerald-50 outline-none transition focus:border-emerald-400/50"
+                formControlName="username"
+                type="text"
+                autocomplete="username"
+              />
+              @if (form.controls.username.invalid && form.controls.username.touched) {
+                <p class="mt-1 text-xs text-rose-300">username must be 3–30 characters</p>
+              }
+            </div>
+            <div>
+              <label class="text-xs font-medium text-emerald-200/70" for="avatar">Avatar URL</label>
+              <input
+                id="avatar"
+                class="mt-1 w-full rounded-lg border border-emerald-200/20 bg-slate-950/60 px-3 py-2.5 text-sm text-emerald-50 outline-none transition focus:border-emerald-400/50"
+                formControlName="avatar"
+                type="url"
+                autocomplete="url"
+                placeholder="https://example.com/avatar.jpg"
+              />
+            </div>
+
+            @if (saveMessage(); as msg) {
+              <p class="text-xs text-emerald-300">✓ {{ msg }}</p>
+            }
+            @if (errorMessage(); as err) {
+              <p class="text-xs text-rose-300">{{ err }}</p>
+            }
+
+            <button class="krypto-btn-primary mt-1 w-fit" type="submit" [disabled]="isSaving()">
+              {{ isSaving() ? 'Saving...' : 'Save changes' }}
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- community tab -->
+      <div
+        role="tabpanel"
+        class="profile-tab-panel"
+        [class.profile-tab-active]="activeTab() === 'community'"
+        [class.profile-tab-hidden]="activeTab() !== 'community'"
+      >
+        <div class="krypto-card p-5">
+          <h2 class="text-sm font-semibold text-cyan-200 flex items-center gap-1.5"><ng-icon name="heroUsers"></ng-icon> Discover Traders</h2>
+          <form class="mt-3" [formGroup]="profileDiscoveryForm">
+            <input
+              class="w-full rounded-lg border border-emerald-200/20 bg-slate-950/60 px-3 py-2.5 text-sm text-emerald-50 outline-none transition focus:border-emerald-400/50"
+              formControlName="query"
+              type="text"
+              placeholder="Search by username or email..."
+            />
+          </form>
+
+          @if (isSearchingUsers()) {
+            <p class="mt-3 text-xs text-emerald-100/50">Searching...</p>
+          }
+
+          <div class="mt-3 grid gap-2">
+            @for (candidate of userSearchResults(); track candidate.id) {
+              <a class="flex items-center justify-between gap-3 rounded-lg border border-emerald-200/10 bg-slate-900/40 p-2.5 no-underline transition hover:border-emerald-200/25" [routerLink]="['/users', candidate.id]">
+                <div class="flex min-w-0 items-center gap-2.5">
+                  @if (candidate.avatar) {
+                    <img [src]="candidate.avatar" [alt]="candidate.username" class="h-8 w-8 rounded-full border border-emerald-300/20 object-cover" />
+                  } @else {
+                    <span class="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 text-[10px] font-bold text-slate-950">
+                      {{ candidate.username.slice(0, 2).toUpperCase() }}
+                    </span>
+                  }
+                  <div class="min-w-0">
+                    <p class="truncate text-xs font-semibold text-emerald-100">{{ candidate.username }}</p>
+                    <p class="truncate text-[10px] text-emerald-100/50">{{ candidate.email }}</p>
+                  </div>
+                </div>
+                <span class="text-[10px] font-bold text-emerald-300/70">View →</span>
+              </a>
+            } @empty {
+              <p class="text-xs text-emerald-100/40">Type at least 2 characters to discover traders.</p>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- watchlist tab -->
+      <div
+        role="tabpanel"
+        class="profile-tab-panel"
+        [class.profile-tab-active]="activeTab() === 'watchlist'"
+        [class.profile-tab-hidden]="activeTab() !== 'watchlist'"
+      >
+        <div class="krypto-card p-5">
+          <h2 class="text-sm font-semibold text-emerald-200 flex items-center gap-1.5"><ng-icon name="heroBookmark"></ng-icon> Watched Coins</h2>
+
+          @if (isLoadingWatchlist()) {
+            <p class="mt-3 text-xs text-emerald-100/50">Loading watchlist...</p>
+          } @else {
+            <div class="mt-3 grid gap-2 sm:grid-cols-2 md:grid-cols-3">
+              @for (coin of watchedCoins(); track coin.id) {
+                <a class="flex items-center gap-3 rounded-lg border border-emerald-200/10 bg-slate-900/40 p-3 no-underline transition hover:border-emerald-200/20" [routerLink]="['/coins', coin.id]">
+                  @if (coin.image) {
+                    <img [src]="coin.image" [alt]="coin.name" class="h-8 w-8 rounded-full object-cover" />
+                  } @else {
+                    <span class="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 text-[10px] font-bold text-slate-950">{{ coin.symbol.slice(0, 2) }}</span>
+                  }
+                  <div class="min-w-0">
+                    <p class="truncate text-xs font-semibold text-emerald-100">{{ coin.name }}</p>
+                    <p class="text-[10px] text-emerald-100/40">{{ coin.symbol }} · {{ coin.currentPrice | number:'1.2-6' }} KRYP</p>
+                  </div>
+                </a>
+              } @empty {
+                <p class="text-xs text-emerald-100/40">You haven't watched any coins yet.</p>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
