@@ -1,0 +1,102 @@
+<section class="grid min-h-[calc(100dvh-9rem)] py-8">
+  <div class="grid gap-5">
+    <header class="rounded-2xl border border-violet-200/20 bg-violet-950/30 p-6 backdrop-blur-md">
+      <h1 class="font-['Space_Grotesk'] text-3xl font-bold text-violet-50">Blockchain Explorer</h1>
+      <p class="mt-1 text-sm text-violet-100/70">Inspect blocks, append transactions, and validate chain integrity.</p>
+    </header>
+
+    @if (errorMessage(); as error) {
+      <p class="rounded-xl border border-rose-300/30 bg-rose-950/30 px-4 py-3 text-sm text-rose-200">{{ error }}</p>
+    }
+
+    @if (successMessage(); as message) {
+      <p class="rounded-xl border border-emerald-300/30 bg-emerald-950/30 px-4 py-3 text-sm text-emerald-200">{{ message }}</p>
+    }
+
+    @if (isLoading()) {
+      <div class="rounded-2xl border border-slate-200/15 bg-slate-900/40 p-6 text-sm text-slate-300">Loading chain data...</div>
+    } @else {
+      <div class="grid gap-4 xl:grid-cols-3">
+        <article class="rounded-2xl border border-violet-200/20 bg-violet-950/25 p-5">
+          <h2 class="font-['Space_Grotesk'] text-xl font-semibold text-violet-50">Latest Block</h2>
+          @if (latestBlock(); as block) {
+            <div class="mt-4 grid gap-2 text-sm text-violet-100">
+              <p><span class="text-violet-200/70">Index:</span> {{ block.index }}</p>
+              <p><span class="text-violet-200/70">Tx Count:</span> {{ block.transactionCount }}</p>
+              <p><span class="text-violet-200/70">Timestamp:</span> {{ block.timestamp | date: 'medium' }}</p>
+              <p class="break-all"><span class="text-violet-200/70">Hash:</span> {{ block.hash }}</p>
+            </div>
+          }
+
+          <button class="mt-4 rounded-xl border border-violet-200/30 bg-violet-900/35 px-4 py-2 text-sm font-semibold text-violet-100" type="button" [disabled]="isVerifying()" (click)="verifyChain()">
+            @if (isVerifying()) {
+              Verifying...
+            } @else {
+              Verify Chain (Admin)
+            }
+          </button>
+
+          @if (verifyResult(); as verify) {
+            <div class="mt-3 rounded-xl border border-violet-200/20 bg-violet-900/20 p-3 text-sm text-violet-100">
+              <p class="font-semibold">{{ verify.valid ? 'Valid chain' : 'Invalid chain' }}</p>
+              <p class="text-xs text-violet-100/80">{{ verify.message }} · blocks {{ verify.blockCount }}</p>
+            </div>
+          }
+        </article>
+
+        <article class="rounded-2xl border border-fuchsia-200/20 bg-fuchsia-950/25 p-5">
+          <h2 class="font-['Space_Grotesk'] text-xl font-semibold text-fuchsia-50">Add Transaction</h2>
+          <form class="mt-4 grid gap-2" [formGroup]="addTransactionForm" (ngSubmit)="addTransaction()">
+            <label class="text-xs font-semibold uppercase tracking-wide text-fuchsia-100/70" for="type">Type</label>
+            <select id="type" class="rounded-xl border border-fuchsia-200/30 bg-slate-950/75 px-3 py-3 text-fuchsia-50" formControlName="type">
+              <option value="TRANSFER">TRANSFER</option>
+              <option value="COIN_CREATION">COIN_CREATION</option>
+              <option value="TRADE">TRADE</option>
+              <option value="REWARD">REWARD</option>
+              <option value="MARKET_EVENT">MARKET_EVENT</option>
+            </select>
+
+            <label class="text-xs font-semibold uppercase tracking-wide text-fuchsia-100/70" for="toUserId">To User (optional)</label>
+            <input id="toUserId" class="rounded-xl border border-fuchsia-200/30 bg-slate-950/75 px-3 py-3 text-fuchsia-50" type="text" formControlName="toUserId" />
+
+            <label class="text-xs font-semibold uppercase tracking-wide text-fuchsia-100/70" for="coinSymbol">Coin Symbol</label>
+            <input id="coinSymbol" class="rounded-xl border border-fuchsia-200/30 bg-slate-950/75 px-3 py-3 text-fuchsia-50" type="text" formControlName="coinSymbol" />
+
+            <label class="text-xs font-semibold uppercase tracking-wide text-fuchsia-100/70" for="amount">Amount</label>
+            <input id="amount" class="rounded-xl border border-fuchsia-200/30 bg-slate-950/75 px-3 py-3 text-fuchsia-50" type="number" min="0.000001" step="0.000001" formControlName="amount" />
+
+            <label class="text-xs font-semibold uppercase tracking-wide text-fuchsia-100/70" for="fee">Fee</label>
+            <input id="fee" class="rounded-xl border border-fuchsia-200/30 bg-slate-950/75 px-3 py-3 text-fuchsia-50" type="number" min="0" step="0.000001" formControlName="fee" />
+
+            <button class="mt-2 rounded-xl bg-gradient-to-r from-fuchsia-400 to-violet-400 px-4 py-3 font-semibold text-fuchsia-950" type="submit" [disabled]="isSubmitting()">
+              @if (isSubmitting()) {
+                Adding...
+              } @else {
+                Add Transaction
+              }
+            </button>
+          </form>
+        </article>
+
+        <article class="rounded-2xl border border-blue-200/20 bg-blue-950/25 p-5 xl:col-span-1">
+          <h2 class="font-['Space_Grotesk'] text-xl font-semibold text-blue-50">Blocks</h2>
+          <div class="mt-4 grid gap-2">
+            @for (block of blocks(); track block.hash) {
+              <div class="rounded-xl border border-blue-200/20 bg-blue-900/20 p-3">
+                <p class="text-sm font-semibold text-blue-100">#{{ block.index }} · {{ block.transactionCount }} tx</p>
+                <p class="text-xs text-blue-100/75">{{ block.timestamp | date: 'short' }}</p>
+                <p class="mt-1 break-all text-[11px] text-blue-100/70">{{ block.hash }}</p>
+              </div>
+            }
+          </div>
+
+          <div class="mt-3 flex items-center justify-between">
+            <button class="rounded-lg border border-blue-200/30 bg-blue-900/40 px-3 py-1.5 text-xs font-semibold text-blue-100 disabled:opacity-50" type="button" [disabled]="!hasPrevious()" (click)="previousPage()">Previous</button>
+            <span class="text-xs text-blue-100/70">Page {{ pageLabel() }}</span>
+            <button class="rounded-lg border border-blue-200/30 bg-blue-900/40 px-3 py-1.5 text-xs font-semibold text-blue-100 disabled:opacity-50" type="button" [disabled]="!hasNext()" (click)="nextPage()">Next</button>
+          </div>
+        </article>
+      </div>
+    }
+  </div>
+</section>
