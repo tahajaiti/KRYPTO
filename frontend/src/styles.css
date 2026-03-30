@@ -1,0 +1,152 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&family=Space+Grotesk:wght@500;700&display=swap');
+@import 'tailwindcss';
+
+:root {
+	color-scheme: dark;
+}
+
+@layer base {
+	* {
+		@apply box-border;
+	}
+
+	body {
+		@apply m-0 min-h-dvh font-['Manrope'] text-emerald-50;
+		background:
+			radial-gradient(circle at 15% 15%, rgba(16, 109, 90, 0.22), transparent 42%),
+			radial-gradient(circle at 82% 8%, rgba(52, 211, 153, 0.08), transparent 35%),
+			radial-gradient(circle at 50% 90%, rgba(6, 78, 59, 0.12), transparent 45%),
+			linear-gradient(180deg, #060a0d 0%, #030508 100%);
+		background-attachment: fixed;
+	}
+
+	::-webkit-scrollbar {
+		width: 6px;
+	}
+
+	::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	::-webkit-scrollbar-thumb {
+		background: rgba(52, 211, 153, 0.2);
+		border-radius: 8px;
+	}
+
+	::-webkit-scrollbar-thumb:hover {
+		background: rgba(52, 211, 153, 0.35);
+	}
+
+	button,
+	input,
+	textarea,
+	select {
+		font: inherit;
+	}
+
+	a {
+		@apply text-inherit;
+	}
+}
+
+@layer components {
+	.krypto-card {
+		@apply rounded-2xl border border-emerald-200/12 bg-slate-900/40 backdrop-blur-sm transition-all duration-300;
+	}
+
+	.krypto-card:hover {
+		@apply border-emerald-200/25 shadow-[0_0_20px_rgba(52,211,153,0.06)];
+	}
+
+	.krypto-card-header {
+		@apply rounded-2xl border border-emerald-200/15 bg-gradient-to-br from-slate-900/60 to-emerald-950/20 p-5 backdrop-blur-md;
+	}
+
+	.krypto-stat-card {
+		@apply rounded-xl border border-emerald-200/10 bg-slate-900/50 p-4 transition-all duration-300;
+	}
+
+	.krypto-stat-card:hover {
+		@apply border-emerald-300/20 shadow-[0_0_12px_rgba(52,211,153,0.08)];
+	}
+
+	.krypto-btn-primary {
+		@apply rounded-xl bg-gradient-to-r from-emerald-400 to-cyan-400 px-5 py-2.5 text-sm font-bold text-slate-950 shadow-lg shadow-emerald-400/20 transition-all;
+	}
+
+	.krypto-btn-primary:hover {
+		@apply brightness-110 shadow-emerald-400/30;
+	}
+
+	.krypto-btn-secondary {
+		@apply rounded-xl border border-emerald-200/25 bg-emerald-900/30 px-4 py-2 text-sm font-semibold text-emerald-100 transition-all;
+	}
+
+	.krypto-btn-secondary:hover {
+		@apply border-emerald-200/40 bg-emerald-900/45;
+	}
+
+	.krypto-glow {
+		box-shadow: 0 0 15px rgba(52, 211, 153, 0.15);
+	}
+
+	.krypto-section-title {
+		@apply font-['Space_Grotesk'] text-2xl font-bold text-emerald-50;
+	}
+
+	.krypto-label {
+		@apply text-xs uppercase tracking-wider text-emerald-300/60;
+	}
+
+	.krypto-value {
+		@apply text-sm font-semibold text-emerald-50;
+	}
+
+	.krypto-badge {
+		@apply inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider;
+	}
+
+	.krypto-badge-bronze {
+		@apply border border-amber-600/30 bg-amber-950/40 text-amber-400;
+	}
+
+	.krypto-badge-silver {
+		@apply border border-slate-400/30 bg-slate-800/40 text-slate-300;
+	}
+
+	.krypto-badge-gold {
+		@apply border border-yellow-500/30 bg-yellow-950/40 text-yellow-400;
+	}
+
+	.krypto-badge-platinum {
+		@apply border border-cyan-400/30 bg-cyan-950/40 text-cyan-300;
+	}
+
+	.krypto-badge-diamond {
+		@apply border border-violet-400/30 bg-violet-950/40 text-violet-300;
+	}
+
+	.krypto-fade-in {
+		animation: kryptoFadeIn 0.4s ease;
+	}
+
+	.krypto-slide-up {
+		animation: kryptoSlideUp 0.3s ease;
+	}
+}
+
+@keyframes kryptoFadeIn {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+
+@keyframes kryptoSlideUp {
+	from {
+		opacity: 0;
+		transform: translateY(12px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
