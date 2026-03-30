@@ -26,4 +26,10 @@ public interface CoinRepository extends JpaRepository<Coin, UUID> {
             String symbol,
             Pageable pageable
     );
+
+    Page<Coin> findByCreatorIdAndActiveTrue(UUID creatorId, Pageable pageable);
+
+    Page<Coin> findByCreatorId(UUID creatorId, Pageable pageable);
+
+    Page<Coin> findByNameContainingIgnoreCaseOrSymbolContainingIgnoreCase(String name, String symbol, Pageable pageable);
 }
