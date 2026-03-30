@@ -41,4 +41,8 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
             Collection<OrderStatus> statuses,
             BigDecimal price
     );
+
+    List<Order> findByUserIdAndSideAndStatusIn(UUID userId, OrderSide side, Collection<OrderStatus> statuses);
+
+    List<Order> findByUserIdAndCoinIdAndSideAndStatusIn(UUID userId, UUID coinId, OrderSide side, Collection<OrderStatus> statuses);
 }
