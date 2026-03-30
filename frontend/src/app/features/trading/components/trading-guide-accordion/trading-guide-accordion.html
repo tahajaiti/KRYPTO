@@ -1,0 +1,22 @@
+<details class="krypto-card group overflow-hidden border-emerald-500/30 transition-all [&_summary::-webkit-details-marker]:hidden">
+  <summary class="flex cursor-pointer items-center justify-between bg-emerald-950/20 p-4 font-semibold text-emerald-100 transition hover:bg-emerald-900/30">
+    <span class="flex items-center gap-2"><ng-icon name="heroQuestionMarkCircle"></ng-icon> How does Trading Work?</span>
+    <span class="transition group-open:-rotate-180"><ng-icon name="heroChevronDown"></ng-icon></span>
+  </summary>
+  <div class="border-t border-emerald-200/10 bg-slate-900/50 p-4 text-xs text-emerald-100/70">
+    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div>
+        <h3 class="mb-1 font-bold text-emerald-200">Market vs Limit</h3>
+        <p><strong>Limit</strong> orders wait until another player takes the opposite side at your exact price (or better). <strong>Market</strong> orders ignore your limit price and buy/sell instantly at whatever prices other players are currently offering.</p>
+      </div>
+      <div>
+        <h3 class="mb-1 font-bold text-amber-200">Status: OPEN</h3>
+        <p>If your order says OPEN, it means it is sitting in the order book. This happens when there's no one actively taking the opposite side of your trade at your requested price yet. Just wait, or cancel it and try a different price.</p>
+      </div>
+      <div>
+        <h3 class="mb-1 font-bold text-rose-200">Status: CANCELLED</h3>
+        <p>If a MARKET order gets cancelled instantly, it means <strong>nobody is trading that coin right now</strong>. Since there's zero liquidity, the system cancels your trade so your funds don't get stuck in a black hole.</p>
+      </div>
+    </div>
+  </div>
+</details>
