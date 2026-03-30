@@ -1,0 +1,78 @@
+@reference "../../../../styles.css";
+
+.header-main {
+  transition: border-color 0.3s ease;
+}
+
+.header-logo-icon {
+  box-shadow: 0 0 12px rgba(52, 211, 153, 0.25);
+  transition: box-shadow 0.3s ease;
+}
+
+.header-logo-icon:hover {
+  box-shadow: 0 0 20px rgba(52, 211, 153, 0.45);
+}
+
+.nav-link {
+  @apply rounded-lg px-3 py-2 text-xs font-medium text-emerald-100/70 transition-all no-underline;
+}
+
+.nav-link:hover {
+  @apply bg-emerald-900/30 text-emerald-50;
+}
+
+.nav-link-active {
+  @apply bg-emerald-900/40 text-emerald-50 shadow-[0_0_8px_rgba(52,211,153,0.15)];
+}
+
+.nav-link-admin {
+  @apply text-amber-300/80;
+}
+
+.nav-link-admin:hover {
+  @apply bg-amber-900/30 text-amber-200;
+}
+
+.nav-link-mobile {
+  @apply rounded-lg px-3 py-2.5 text-sm font-medium text-emerald-100/80 no-underline transition-all;
+}
+
+.nav-link-mobile:hover {
+  @apply bg-emerald-900/30 text-emerald-50;
+}
+
+.balance-pill {
+  animation: fadeIn 0.5s ease;
+}
+
+.challenges-dropdown {
+  animation: slideDown 0.2s ease;
+}
+
+.challenge-card {
+  transition: border-color 0.2s ease;
+}
+
+.challenge-card:hover {
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+.mobile-menu {
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
