@@ -1,0 +1,46 @@
+<div class="krypto-card p-5">
+  <h2 class="text-sm font-semibold text-emerald-200 flex items-center gap-1.5"><ng-icon name="heroChartBarSquare"></ng-icon> Market Snapshot</h2>
+  <div class="mt-3 overflow-hidden rounded-xl border border-emerald-200/10">
+    <table class="w-full text-xs">
+      <thead class="bg-slate-900/60 text-emerald-100/50">
+        <tr>
+          <th class="px-3 py-2.5 text-left font-medium">Coin</th>
+          <th class="px-3 py-2.5 text-right font-medium">Price</th>
+          <th class="hidden px-3 py-2.5 text-right font-medium sm:table-cell">Supply</th>
+          <th class="hidden px-3 py-2.5 text-right font-medium md:table-cell">Mkt Cap</th>
+          <th class="px-3 py-2.5 text-center font-medium w-16">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (coin of marketCoins(); track coin.id) {
+          <tr class="border-t border-emerald-200/5 transition hover:bg-emerald-900/10">
+            <td class="px-3 py-2">
+              <div class="flex items-center gap-2">
+                @if (coin.image) {
+                  <img [src]="coin.image" [alt]="coin.symbol" class="h-6 w-6 rounded-full border border-emerald-200/15 object-cover" />
+                } @else {
+                  <span class="grid h-6 w-6 place-items-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 text-[9px] font-bold text-slate-950">{{ coinInitial(coin.symbol) }}</span>
+                }
+                <a class="font-medium text-emerald-50 no-underline hover:text-emerald-200" [routerLink]="['/markets', coin.id]">{{ coin.symbol }}</a>
+              </div>
+            </td>
+            <td class="px-3 py-2 text-right font-medium text-emerald-100">{{ coin.currentPrice | number:'1.2-6' }}</td>
+            <td class="hidden px-3 py-2 text-right text-emerald-100/50 sm:table-cell">{{ coin.currentSupply | number:'1.0-2' }}</td>
+            <td class="hidden px-3 py-2 text-right text-emerald-100/50 md:table-cell">{{ coin.marketCap | number:'1.0-2' }}</td>
+            <td class="px-3 py-2 text-center">
+              @if (coin.active) {
+                <span class="inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-950/40 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-emerald-300">
+                  <span class="inline-flex h-1 w-1 rounded-full bg-emerald-400"></span> Active
+                </span>
+              } @else {
+                <span class="inline-flex items-center gap-1 rounded-full border border-rose-400/20 bg-rose-950/40 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-rose-300">
+                  <span class="inline-flex h-1 w-1 rounded-full bg-rose-400"></span> Off
+                </span>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
