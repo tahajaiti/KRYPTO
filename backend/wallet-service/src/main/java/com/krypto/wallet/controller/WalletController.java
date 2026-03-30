@@ -1,6 +1,22 @@
 package com.krypto.wallet.controller;
 
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.krypto.common.dto.ApiResponse;
+import com.krypto.common.dto.PageResponse;
 import com.krypto.wallet.dto.request.DebitKrypRequest;
 import com.krypto.wallet.dto.request.MintCoinRequest;
 import com.krypto.wallet.dto.request.SettleTradeRequest;
@@ -9,20 +25,11 @@ import com.krypto.wallet.dto.response.BalanceItemResponse;
 import com.krypto.wallet.dto.response.NetWorthResponse;
 import com.krypto.wallet.dto.response.TransferResponse;
 import com.krypto.wallet.dto.response.WalletResponse;
+import com.krypto.wallet.dto.response.WalletTransferItemResponse;
 import com.krypto.wallet.service.WalletService;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/wallets")
@@ -46,6 +53,39 @@ public class WalletController {
     @GetMapping("/{userId}/balances")
     public ResponseEntity<ApiResponse<List<BalanceItemResponse>>> getBalances(@PathVariable UUID userId) {
         List<BalanceItemResponse> response = walletService.getBalances(userId);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    @GetMapping("/{userId}/balances/coin/{coinId}")
+    public ResponseEntity<ApiResponse<BalanceItemResponse>> getBalanceByCoin(@PathVariable UUID userId, @PathVariable UUID coinId) {
+        BalanceItemResponse response = walletService.getBalanceByCoin(userId, coinId);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    @GetMapping("/internal/{userId}/balances/coin/{coinId}")
+    public ResponseEntity<ApiResponse<BalanceItemResponse>> getBalanceByCoinInternal(
+            @RequestHeader("X-Internal-Secret") String internalSecret,
+            @PathVariable UUID userId, 
+            @PathVariable UUID coinId
+    ) {
+        // walletService implementation already handles validation if needed or we can just call it
+        // since /api/wallets/internal/** is permitAll() in SecurityConfig
+        BalanceItemResponse response = walletService.getBalanceByCoin(userId, coinId);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    @GetMapping("/{userId}/balances/kryp")
+    public ResponseEntity<ApiResponse<BalanceItemResponse>> getKrypBalance(@PathVariable UUID userId) {
+        BalanceItemResponse response = walletService.getBalanceByCoin(userId, null);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    @GetMapping("/internal/{userId}/balances/kryp")
+    public ResponseEntity<ApiResponse<BalanceItemResponse>> getKrypBalanceInternal(
+            @RequestHeader("X-Internal-Secret") String internalSecret,
+            @PathVariable UUID userId
+    ) {
+        BalanceItemResponse response = walletService.getBalanceByCoin(userId, null);
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
@@ -90,5 +130,15 @@ public class WalletController {
     public ResponseEntity<ApiResponse<TransferResponse>> transferKryp(@Valid @RequestBody TransferKrypRequest request) {
         TransferResponse response = walletService.transferKryp(request);
         return ResponseEntity.ok(ApiResponse.ok(response, "transfer successful"));
+    }
+
+    @GetMapping("/me/transfers")
+    public ResponseEntity<PageResponse<WalletTransferItemResponse>> getCurrentUserTransferHistory(
+            @PageableDefault(size = 50, sort = "transferredAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        PageResponse<WalletTransferItemResponse> response = walletService.getCurrentUserTransferHistory(
+                pageable.getPageNumber(),
+                pageable.getPageSize()
+        );
+        return ResponseEntity.ok(response);
     }
 }
