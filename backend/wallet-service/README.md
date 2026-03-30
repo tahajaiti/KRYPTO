@@ -40,4 +40,4 @@ on user registration, wallet-service auto-creates a wallet and seeds KRYP balanc
 - `Wallet` and `WalletBalance` both extend `BaseEntity`
 - `KRYP` is represented as `WalletBalance` with `coinId = null` and `symbol = "KRYP"`
 - cross-service references are by id only
-- net worth uses `coin-service` price endpoint (`/api/coins/{coinId}/price`) when available; if unavailable, non-KRYP price falls back to `0`
+- net worth uses `coin-service` batch price endpoint (`POST /api/coins/prices/batch`) to fetch all coin prices in a single internal API request (N+1 optimization), falling back to `0` if unavailable
