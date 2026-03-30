@@ -1,6 +1,6 @@
 # KRYPTO Frontend
 
-Angular 19 single-page application for the KRYPTO simulated crypto trading platform.
+Angular 21 single-page application for the KRYPTO simulated crypto trading platform.
 
 ## Tech Stack
 

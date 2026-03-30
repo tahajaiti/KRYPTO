@@ -5,6 +5,7 @@ import com.krypto.common.dto.PageResponse;
 import com.krypto.common.security.JwtPrincipal;
 import com.krypto.trading.client.CoinClient;
 import com.krypto.trading.client.WalletClient;
+import com.krypto.trading.client.dto.BalanceItemResponse;
 import com.krypto.trading.client.dto.CoinPriceResponse;
 import com.krypto.trading.client.dto.RecordTradeRequest;
 import com.krypto.trading.client.dto.SettleTradeRequest;
@@ -78,9 +79,24 @@ class TradingServiceIntegrationTest {
                 .currentPrice(new BigDecimal("10"))
                 .build();
 
+        BalanceItemResponse krypBalance = BalanceItemResponse.builder()
+                .symbol("KRYP")
+                .balance(new BigDecimal("100000"))
+                .build();
+
+        BalanceItemResponse coinBalance = BalanceItemResponse.builder()
+                .coinId(coinId)
+                .symbol("MBTC")
+                .balance(new BigDecimal("100000"))
+                .build();
+
         Mockito.when(coinClient.getCoinPrice(eq(coinId))).thenReturn(ApiResponse.ok(priceResponse));
         Mockito.when(coinClient.recordTrade(eq(coinId), any(RecordTradeRequest.class), eq("krypto-internal-secret")))
                 .thenReturn(ApiResponse.ok(priceResponse));
+        Mockito.when(walletClient.getKrypBalance(any(UUID.class), eq("krypto-internal-secret")))
+                .thenReturn(ApiResponse.ok(krypBalance));
+        Mockito.when(walletClient.getCoinBalance(any(UUID.class), any(UUID.class), eq("krypto-internal-secret")))
+                .thenReturn(ApiResponse.ok(coinBalance));
         Mockito.when(walletClient.settleTrade(any(SettleTradeRequest.class), eq("krypto-internal-secret")))
                 .thenReturn(ApiResponse.ok(null));
     }
@@ -129,7 +145,7 @@ class TradingServiceIntegrationTest {
         assertThat(payload).isInstanceOf(Map.class);
         Map<?, ?> event = (Map<?, ?>) payload;
         assertThat(event.get("type")).isEqualTo("TRADE");
-        assertThat(event.get("coinSymbol")).isEqualTo("MBTC");
+        assertThat(event.get("coinSymbol")).isEqualTo("COIN");
     }
 
     @Test

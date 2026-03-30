@@ -10,7 +10,7 @@ Users receive KRYP (base currency), create custom coins, and trade them with liv
 - **PostgreSQL** for persistent data stores (separate DB per service + blockchain ledger)
 - **RabbitMQ** for async event messaging
 - **Redis** for caching
-- **Angular 19** frontend with Tailwind CSS
+- **Angular 21** frontend with Tailwind CSS
 - **Docker Compose** for local orchestration
 
 ## Architecture
@@ -166,8 +166,6 @@ cd backend && ./gradlew build -x test
 - [Backend README](./backend/README.md) — microservice architecture and configuration
 - [Blockchain Service README](./backend/blockchain-service/README.md) — ledger design and API
 - [Frontend README](./frontend/README.md) — Angular app structure and build instructions
-- `backend/agent/` — development notes and project state
-- `frontend/agent/` — frontend integration and manual guides
 
 ## Architecture Notes
 
