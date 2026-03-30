@@ -1,7 +1,21 @@
 package com.krypto.blockchain.service.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+
 import com.krypto.blockchain.dto.request.AddTransactionRequest;
 import com.krypto.blockchain.dto.response.BlockResponse;
 import com.krypto.blockchain.dto.response.ChainValidationResponse;
@@ -9,34 +23,18 @@ import com.krypto.blockchain.dto.response.TransactionResponse;
 import com.krypto.blockchain.mapper.BlockchainMapper;
 import com.krypto.blockchain.model.Block;
 import com.krypto.blockchain.model.ChainTransaction;
+import com.krypto.blockchain.model.TransactionStatus;
+import com.krypto.blockchain.repository.BlockRepository;
+import com.krypto.blockchain.repository.ChainTransactionRepository;
 import com.krypto.blockchain.service.BlockchainService;
 import com.krypto.common.dto.PageResponse;
 import com.krypto.common.exception.BusinessException;
 import com.krypto.common.exception.ErrorCode;
+
+import jakarta.annotation.PostConstruct;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import jakarta.annotation.PostConstruct;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-
-import java.math.BigDecimal;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.security.MessageDigest;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -44,10 +42,8 @@ import java.util.UUID;
 public class BlockchainServiceImpl implements BlockchainService {
 
     private final BlockchainMapper blockchainMapper;
-    private final ObjectMapper objectMapper;
-
-    private final List<Block> chain = new ArrayList<>();
-    private final List<ChainTransaction> pendingTransactions = new ArrayList<>();
+    private final BlockRepository blockRepository;
+    private final ChainTransactionRepository chainTransactionRepository;
 
     @Value("${blockchain.difficulty:3}")
     private int difficulty;
@@ -55,66 +51,23 @@ public class BlockchainServiceImpl implements BlockchainService {
     @Value("${blockchain.max-transactions-per-block:5}")
     private int maxTransactionsPerBlock;
 
-    @Value("${blockchain.idempotency-window-size:10000}")
-    private int idempotencyWindowSize;
-
-    @Value("${blockchain.persistence.enabled:true}")
-    private boolean persistenceEnabled;
-
-    @Value("${blockchain.persistence.file-path:data/blockchain/state.json}")
-    private String persistenceFilePath;
-
-    private final Map<String, ChainTransaction> recentTransactionsBySourceEventId = new LinkedHashMap<>() {
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<String, ChainTransaction> eldest) {
-            return size() > Math.max(100, idempotencyWindowSize);
-        }
-    };
-
     @PostConstruct
-    public synchronized void restoreState() {
-        if (!persistenceEnabled || !StringUtils.hasText(persistenceFilePath)) {
-            return;
-        }
-
-        Path path = Paths.get(persistenceFilePath);
-        if (!Files.exists(path)) {
-            return;
-        }
-
-        try {
-            BlockchainState state = objectMapper.readValue(path.toFile(), BlockchainState.class);
-
-            chain.clear();
-            if (state.chain() != null) {
-                chain.addAll(state.chain());
-            }
-
-            pendingTransactions.clear();
-            if (state.pendingTransactions() != null) {
-                pendingTransactions.addAll(state.pendingTransactions());
-            }
-
-            recentTransactionsBySourceEventId.clear();
-            if (state.recentTransactionsBySourceEventId() != null) {
-                recentTransactionsBySourceEventId.putAll(state.recentTransactionsBySourceEventId());
-            }
-
-            log.info("restored blockchain state from {} (blocks={}, pending={})", path, chain.size(), pendingTransactions.size());
-        } catch (Exception ex) {
-            log.error("failed to restore blockchain state from {}", path, ex);
+    @Transactional
+    public synchronized void ensureGenesisBlock() {
+        if (blockRepository.count() == 0) {
+            blockRepository.save(createGenesisBlock());
+            log.info("genesis block initialized in database");
         }
     }
 
     @Override
+    @Transactional
     public synchronized TransactionResponse addTransaction(AddTransactionRequest request) {
         validateRequest(request);
 
         if (request.getSourceEventId() != null && !request.getSourceEventId().isBlank()) {
-            ChainTransaction existing = recentTransactionsBySourceEventId.get(request.getSourceEventId());
-            if (existing != null) {
-                return blockchainMapper.toTransactionResponse(existing);
-            }
+            ChainTransaction existing = chainTransactionRepository.findTopBySourceEventId(request.getSourceEventId()).orElse(null);
+            if (existing != null) return blockchainMapper.toTransactionResponse(existing);
         }
 
         Instant txTimestamp = request.getEventTimestamp() != null
@@ -122,7 +75,6 @@ public class BlockchainServiceImpl implements BlockchainService {
                 : Instant.now();
 
         ChainTransaction tx = ChainTransaction.builder()
-                .id(UUID.randomUUID().toString())
                 .type(request.getType())
                 .fromUserId(request.getFromUserId())
                 .toUserId(request.getToUserId())
@@ -130,27 +82,25 @@ public class BlockchainServiceImpl implements BlockchainService {
                 .amount(request.getAmount())
                 .fee(request.getFee() != null ? request.getFee() : BigDecimal.ZERO)
                 .timestamp(txTimestamp)
+                .sourceEventId(request.getSourceEventId())
+                .positionInBlock(-1)
+                .status(TransactionStatus.PENDING)
                 .build();
 
         tx.setHash(calculateTransactionHash(tx));
-        pendingTransactions.add(tx);
+        chainTransactionRepository.save(tx);
 
-        if (request.getSourceEventId() != null && !request.getSourceEventId().isBlank()) {
-            recentTransactionsBySourceEventId.put(request.getSourceEventId(), tx);
-        }
-
-        if (pendingTransactions.size() >= Math.max(1, maxTransactionsPerBlock)) {
+        if (chainTransactionRepository.countByStatus(TransactionStatus.PENDING) >= Math.max(1, maxTransactionsPerBlock)) {
             mineNextBlock();
-        } else {
-            persistState();
         }
 
         return blockchainMapper.toTransactionResponse(tx);
     }
 
     @Override
+    @Transactional
     public synchronized BlockResponse minePendingTransactions() {
-        if (pendingTransactions.isEmpty()) {
+        if (chainTransactionRepository.countByStatus(TransactionStatus.PENDING) == 0) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, "no pending transactions to mine");
         }
 
@@ -159,34 +109,50 @@ public class BlockchainServiceImpl implements BlockchainService {
     }
 
     @Override
+    @Transactional(Transactional.TxType.SUPPORTS)
     public synchronized BlockResponse getLatestBlock() {
         return blockchainMapper.toBlockResponse(getLastBlock());
     }
 
     @Override
+    @Transactional(Transactional.TxType.SUPPORTS)
     public synchronized PageResponse<BlockResponse> getBlocks(Pageable pageable) {
-        List<Block> snapshot = new ArrayList<>(chain);
-        sortBlocks(snapshot, pageable.getSort());
-        int totalElements = snapshot.size();
+        Pageable effectivePageable = pageable.getSort().isSorted()
+                ? pageable
+            : PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(Sort.Direction.DESC, "index"));
 
-        int page = pageable.getPageNumber();
-        int size = pageable.getPageSize();
-        int fromIndex = Math.min(page * size, totalElements);
-        int toIndex = Math.min(fromIndex + size, totalElements);
-
-        List<BlockResponse> content = snapshot.subList(fromIndex, toIndex).stream()
+        Page<Block> pageData = blockRepository.findAll(effectivePageable);
+        List<BlockResponse> content = pageData.getContent().stream()
                 .map(blockchainMapper::toBlockResponse)
                 .toList();
 
-        String sortBy = pageable.getSort().stream().findFirst().map(o -> o.getProperty()).orElse(null);
-        String sortDirection = pageable.getSort().stream().findFirst().map(o -> o.getDirection().name()).orElse(null);
+        String sortBy = effectivePageable.getSort().stream().findFirst().map(o -> o.getProperty()).orElse(null);
+        String sortDirection = effectivePageable.getSort().stream().findFirst().map(o -> o.getDirection().name()).orElse(null);
 
-        return PageResponse.of(content, page, size, totalElements, content.size(), sortBy, sortDirection);
+        return PageResponse.of(
+                content,
+                pageData.getNumber(),
+                pageData.getSize(),
+                (int) pageData.getTotalElements(),
+                pageData.getNumberOfElements(),
+                sortBy,
+                sortDirection
+        );
     }
 
     @Override
+    @Transactional(Transactional.TxType.SUPPORTS)
     public synchronized ChainValidationResponse verifyChain() {
-        Block genesis = getGenesisBlock();
+        List<Block> chain = blockRepository.findAll(Sort.by(Sort.Direction.ASC, "index"));
+        if (chain.isEmpty()) {
+            return ChainValidationResponse.builder()
+                    .valid(false)
+                    .blockCount(0)
+                    .message("chain is empty")
+                    .build();
+        }
+
+        Block genesis = chain.get(0);
         if (genesis.getIndex() != 0 || !"0".equals(genesis.getPreviousHash())) {
             return ChainValidationResponse.builder()
                     .valid(false)
@@ -244,9 +210,11 @@ public class BlockchainServiceImpl implements BlockchainService {
                 .build();
     }
 
+    @Transactional
     private Block mineNextBlock() {
         Block previous = getLastBlock();
-        List<ChainTransaction> txs = new ArrayList<>(pendingTransactions.subList(0, Math.min(maxTransactionsPerBlock, pendingTransactions.size())));
+        List<ChainTransaction> pending = chainTransactionRepository.findByStatusOrderByTimestampAscIdAsc(TransactionStatus.PENDING);
+        List<ChainTransaction> txs = new ArrayList<>(pending.subList(0, Math.min(maxTransactionsPerBlock, pending.size())));
 
         long index = previous.getIndex() + 1;
         String previousHash = previous.getHash();
@@ -269,24 +237,27 @@ public class BlockchainServiceImpl implements BlockchainService {
                 .hash(hash)
                 .build();
 
-        chain.add(mined);
-        pendingTransactions.removeAll(txs);
-        persistState();
+        Block saved = blockRepository.save(mined);
+
+        for (int i = 0; i < txs.size(); i++) {
+            ChainTransaction tx = txs.get(i);
+            tx.setStatus(TransactionStatus.MINED);
+            tx.setPositionInBlock(i);
+            tx.setBlock(saved);
+        }
+        chainTransactionRepository.saveAll(txs);
+
+        saved.setTransactions(txs);
         return mined;
     }
 
+    @Transactional
     private Block getLastBlock() {
-        if (chain.isEmpty()) {
-            chain.add(createGenesisBlock());
+        Block last = blockRepository.findTopByOrderByIndexDesc().orElse(null);
+        if (last == null) {
+            last = blockRepository.save(createGenesisBlock());
         }
-        return chain.get(chain.size() - 1);
-    }
-
-    private Block getGenesisBlock() {
-        if (chain.isEmpty()) {
-            chain.add(createGenesisBlock());
-        }
-        return chain.get(0);
+        return last;
     }
 
     private Block createGenesisBlock() {
@@ -305,8 +276,13 @@ public class BlockchainServiceImpl implements BlockchainService {
     }
 
     private String calculateTransactionHash(ChainTransaction tx) {
-        String payload = tx.getId() + "|" + tx.getType() + "|" + tx.getFromUserId() + "|" + tx.getToUserId()
-                + "|" + tx.getCoinSymbol() + "|" + tx.getAmount() + "|" + tx.getFee() + "|" + tx.getTimestamp();
+        String amount = tx.getAmount() == null ? "0" : tx.getAmount().stripTrailingZeros().toPlainString();
+        String fee = tx.getFee() == null ? "0" : tx.getFee().stripTrailingZeros().toPlainString();
+        String timestamp = tx.getTimestamp() == null ? "0" : String.valueOf(tx.getTimestamp().toEpochMilli());
+
+        String payload = tx.getType() + "|" + tx.getFromUserId() + "|" + tx.getToUserId()
+                + "|" + tx.getCoinSymbol() + "|" + amount + "|" + fee + "|" + timestamp
+                + "|" + tx.getSourceEventId();
         return sha256(payload);
     }
 
@@ -325,31 +301,14 @@ public class BlockchainServiceImpl implements BlockchainService {
         }
     }
 
-    private void sortBlocks(List<Block> blocks, Sort sort) {
-        Sort.Order firstOrder = sort.stream().findFirst().orElse(Sort.Order.desc("index"));
-        String property = firstOrder.getProperty().toLowerCase(Locale.ROOT);
-
-        Comparator<Block> comparator = switch (property) {
-            case "timestamp" -> Comparator.comparing(Block::getTimestamp);
-            case "index" -> Comparator.comparingLong(Block::getIndex);
-            default -> Comparator.comparingLong(Block::getIndex);
-        };
-
-        if (firstOrder.getDirection() == Sort.Direction.DESC) {
-            comparator = comparator.reversed();
-        }
-        blocks.sort(comparator);
-    }
-
     private String calculateBlockHash(long index, String previousHash, Instant timestamp, long nonce, List<ChainTransaction> txs) {
-        String txJson;
-        try {
-            txJson = objectMapper.writeValueAsString(txs);
-        } catch (JsonProcessingException e) {
-            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "failed to serialize transactions", e);
-        }
+        String txDigest = txs.stream()
+                .sorted(Comparator.comparingInt(ChainTransaction::getPositionInBlock))
+                .map(ChainTransaction::getHash)
+                .collect(Collectors.joining(";"));
 
-        String payload = index + "|" + previousHash + "|" + timestamp + "|" + nonce + "|" + txJson;
+        String timeStr = timestamp == null ? "0" : String.valueOf(timestamp.toEpochMilli());
+        String payload = index + "|" + previousHash + "|" + timeStr + "|" + nonce + "|" + txDigest;
         return sha256(payload);
     }
 
@@ -369,35 +328,5 @@ public class BlockchainServiceImpl implements BlockchainService {
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.INTERNAL_ERROR, "failed to hash data", e);
         }
-    }
-
-    private void persistState() {
-        if (!persistenceEnabled || !StringUtils.hasText(persistenceFilePath)) {
-            return;
-        }
-
-        Path path = Paths.get(persistenceFilePath);
-        try {
-            Path parent = path.getParent();
-            if (parent != null) {
-                Files.createDirectories(parent);
-            }
-
-            BlockchainState state = new BlockchainState(
-                    new ArrayList<>(chain),
-                    new ArrayList<>(pendingTransactions),
-                    new LinkedHashMap<>(recentTransactionsBySourceEventId)
-            );
-            objectMapper.writerWithDefaultPrettyPrinter().writeValue(path.toFile(), state);
-        } catch (IOException ex) {
-            log.error("failed to persist blockchain state to {}", path, ex);
-        }
-    }
-
-    private record BlockchainState(
-            List<Block> chain,
-            List<ChainTransaction> pendingTransactions,
-            Map<String, ChainTransaction> recentTransactionsBySourceEventId
-    ) {
     }
 }
