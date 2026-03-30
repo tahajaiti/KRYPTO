@@ -40,6 +40,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/**").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/coins/*/price").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/coins/*/history").permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/coins/internal/*/trades").permitAll()
                         .requestMatchers("/api/coins/**").authenticated()
                         .anyRequest().authenticated()
