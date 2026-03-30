@@ -1,0 +1,86 @@
+<article class="krypto-card flex flex-col min-h-[400px]">
+  <div class="p-4 border-b border-emerald-200/5 bg-slate-900/60 flex items-center justify-between gap-3">
+    <h2 class="text-xs font-bold text-emerald-50 flex items-center gap-1.5 uppercase tracking-wider">
+      <ng-icon name="heroClock"></ng-icon> Transaction History
+    </h2>
+    <div class="rounded-lg bg-emerald-950/40 px-2 py-1 border border-emerald-400/10">
+      <span class="text-[9px] font-bold text-emerald-400/60 uppercase">{{ totalElements() }} Total</span>
+    </div>
+  </div>
+
+  <div class="flex-1 overflow-auto p-4">
+    <div class="relative grid gap-4">
+      <!-- vertical line -->
+      <div class="absolute left-[15px] top-2 bottom-2 w-px bg-gradient-to-b from-emerald-400/20 via-emerald-400/10 to-transparent"></div>
+
+      @for (item of transfers(); track item.id; let first = $first) {
+        <div class="relative pl-9 krypto-slide-up" [style.animation-delay]="(transfers().indexOf(item) * 0.05) + 's'">
+          <!-- node icon -->
+          <div 
+            class="absolute left-0 top-0.5 grid h-8 w-8 place-items-center rounded-full border shadow-sm z-10 transition group"
+            [class.bg-rose-950\/40]="isOutgoingTransfer(item)"
+            [class.border-rose-400\/30]="isOutgoingTransfer(item)"
+            [class.text-rose-400]="isOutgoingTransfer(item)"
+            [class.bg-emerald-950\/40]="!isOutgoingTransfer(item)"
+            [class.border-emerald-400\/30]="!isOutgoingTransfer(item)"
+            [class.text-emerald-400]="!isOutgoingTransfer(item)"
+          >
+            <ng-icon [name]="isOutgoingTransfer(item) ? 'heroArrowUpRight' : 'heroArrowDownLeft'" class="text-xs"></ng-icon>
+          </div>
+
+          <!-- content card -->
+          <div class="rounded-xl border border-emerald-200/5 bg-emerald-900/5 p-3 transition hover:border-emerald-200/20 hover:bg-emerald-900/10">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="min-w-0">
+                <p class="text-[11px] font-bold text-emerald-50">
+                  {{ isOutgoingTransfer(item) ? 'Sent KRYP to' : 'Received KRYP from' }}
+                </p>
+                <p class="mt-0.5 text-[9px] text-emerald-100/30 font-mono truncate">
+                   ID: {{ isOutgoingTransfer(item) ? item.toUserId : item.fromUserId }}
+                </p>
+              </div>
+              <div class="text-right">
+                <p class="text-[11px] font-black" [class.text-rose-400]="isOutgoingTransfer(item)" [class.text-emerald-400]="!isOutgoingTransfer(item)">
+                  {{ isOutgoingTransfer(item) ? '-' : '+' }}{{ item.amount | number: '1.2-4' }}
+                </p>
+                <p class="mt-0.5 text-[9px] text-emerald-100/30 uppercase font-bold tracking-tighter">KRYP</p>
+              </div>
+            </div>
+            
+            <div class="mt-2 pt-2 border-t border-emerald-200/5 flex items-center justify-between">
+              <span class="text-[9px] text-emerald-400/40 flex items-center gap-1">
+                <ng-icon name="heroCheckCircle"></ng-icon> Confirmed
+              </span>
+              <time class="text-[10px] text-emerald-100/30 font-medium italic">{{ item.transferredAt | date: 'MMM d, h:mm a' }}</time>
+            </div>
+          </div>
+        </div>
+      } @empty {
+        <div class="flex flex-col items-center justify-center py-12 gap-3">
+          <div class="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-950/20 text-emerald-100/10 border border-emerald-200/5">
+            <ng-icon name="heroDocumentText" class="text-2xl"></ng-icon>
+          </div>
+          <p class="text-xs text-emerald-100/30 font-medium">No transfer history recorded.</p>
+        </div>
+      }
+
+      @if (canLoadMore()) {
+        <div class="flex justify-center pt-2 pl-9">
+          <button
+            class="krypto-btn-secondary py-1.5 px-6 text-[10px] w-full flex items-center justify-center gap-2"
+            type="button"
+            (click)="requestLoadMore()"
+            [disabled]="isLoadingMore()"
+          >
+            @if (isLoadingMore()) {
+              <div class="h-3 w-3 animate-spin rounded-full border-2 border-emerald-400/40 border-t-transparent"></div>
+              Synchronizing...
+            } @else {
+              <ng-icon name="heroArrowPath"></ng-icon> Load More History
+            }
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+</article>
