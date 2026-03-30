@@ -13,4 +13,7 @@ public interface CoinClient {
 
     @GetMapping("/api/coins/{coinId}/price")
     ApiResponse<CoinPriceResponse> getCoinPrice(@PathVariable UUID coinId);
+
+    @org.springframework.web.bind.annotation.PostMapping("/api/coins/prices/batch")
+    ApiResponse<java.util.Map<UUID, java.math.BigDecimal>> getCoinPricesBatch(@org.springframework.web.bind.annotation.RequestBody java.util.Set<UUID> coinIds);
 }
