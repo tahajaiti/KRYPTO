@@ -13,7 +13,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./infrastructure/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh
+      - ./backend/infrastructure/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
@@ -60,8 +60,8 @@ services:
 
   discovery-service:
     build:
-      context: .
-      dockerfile: ./backend/Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
       args:
         SERVICE_NAME: discovery-service
     container_name: krypto-discovery
@@ -80,8 +80,8 @@ services:
 
   config-service:
     build:
-      context: .
-      dockerfile: ./backend/Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
       args:
         SERVICE_NAME: config-service
     container_name: krypto-config
@@ -90,7 +90,7 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: native,docker
     volumes:
-      - ./config-repo:/config-repo:ro
+      - ./backend/config-repo:/config-repo:ro
     depends_on:
       discovery-service:
         condition: service_healthy
@@ -105,8 +105,8 @@ services:
 
   api-gateway:
     build:
-      context: .
-      dockerfile: ./backend/Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
       args:
         SERVICE_NAME: api-gateway
     container_name: krypto-gateway
@@ -114,7 +114,7 @@ services:
       - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:4200}
     depends_on:
       config-service:
         condition: service_healthy
@@ -131,8 +131,8 @@ services:
 
   user-service:
     build:
-      context: .
-      dockerfile: ./backend/Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
       args:
         SERVICE_NAME: user-service
     container_name: krypto-user
@@ -158,8 +158,8 @@ services:
 
   wallet-service:
     build:
-      context: .
-      dockerfile: ./backend/Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
       args:
         SERVICE_NAME: wallet-service
     container_name: krypto-wallet
@@ -185,8 +185,8 @@ services:
 
   coin-service:
     build:
-      context: .
-      dockerfile: ./backend/Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
       args:
         SERVICE_NAME: coin-service
     container_name: krypto-coin
@@ -212,8 +212,8 @@ services:
 
   trading-service:
     build:
-      context: .
-      dockerfile: ./backend/Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
       args:
         SERVICE_NAME: trading-service
     container_name: krypto-trading
@@ -239,34 +239,13 @@ services:
 
   blockchain-service:
     build:
-      context: .
-      dockerfile: ./backend/Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
       args:
         SERVICE_NAME: blockchain-service
     container_name: krypto-blockchain
     ports:
       - "8085:8085"
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
-      RABBITMQ_USER: ${RABBITMQ_USER}
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
-    depends_on:
-      config-service:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    networks:
-      - krypto-network
-
-  gamification-service:
-    build:
-      context: .
-      dockerfile: ./backend/Dockerfile
-      args:
-        SERVICE_NAME: gamification-service
-    container_name: krypto-gamification
-    ports:
-      - "8086:8086"
     environment:
       SPRING_PROFILES_ACTIVE: docker
       POSTGRES_USER: ${POSTGRES_USER}
@@ -278,9 +257,28 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+    networks:
+      - krypto-network
+
+  # --- frontend ---
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: krypto-frontend
+    ports:
+      - "4200:4200"
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+    depends_on:
+      api-gateway:
         condition: service_healthy
     networks:
       - krypto-network
@@ -289,6 +287,7 @@ volumes:
   postgres-data:
   redis-data:
   rabbitmq-data:
+  frontend-node-modules:
 
 networks:
   krypto-network:
