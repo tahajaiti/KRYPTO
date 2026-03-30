@@ -1,0 +1,185 @@
+<div class="krypto-card p-5">
+  <h2 class="text-sm font-semibold text-emerald-200 flex items-center gap-1.5"><ng-icon name="heroClipboardDocumentList"></ng-icon> Order Ticket</h2>
+  <form class="mt-4 grid gap-3" [formGroup]="orderForm" (ngSubmit)="submitOrder()">
+
+    <!-- coin picker -->
+    <div class="relative">
+      <label class="text-[10px] font-medium text-emerald-200/70">Coin</label>
+      <button
+        type="button"
+        class="coin-picker-trigger mt-1 flex w-full items-center gap-2.5 rounded-lg border border-emerald-200/20 bg-slate-950/60 px-3 py-2.5 text-left text-xs text-emerald-50 outline-none transition hover:border-emerald-200/30 focus:border-emerald-400/50"
+        (click)="openCoinDropdown()"
+      >
+        @if (selectedCoin(); as coin) {
+          @if (coin.image) {
+            <img [src]="coin.image" [alt]="coin.symbol" class="h-5 w-5 rounded-full border border-emerald-200/15 object-cover" />
+          } @else {
+            <span class="grid h-5 w-5 place-items-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 text-[8px] font-bold text-slate-950">{{ coinInitial(coin.symbol) }}</span>
+          }
+          <span class="flex-1 truncate font-medium">{{ coin.symbol }} <span class="text-emerald-100/40 font-normal">— {{ coin.name }}</span></span>
+          @if (coin.active) {
+            <span class="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" title="Active"></span>
+          } @else {
+            <span class="inline-flex h-1.5 w-1.5 rounded-full bg-rose-400" title="Inactive"></span>
+          }
+        } @else {
+          <span class="text-emerald-100/40">Select a coin...</span>
+        }
+        <ng-icon name="heroChevronDown" class="ml-auto text-emerald-100/40 text-[14px]"></ng-icon>
+      </button>
+
+      <!-- dropdown -->
+      @if (coinDropdownOpen()) {
+        <div class="coin-dropdown absolute left-0 right-0 top-full z-50 mt-1 rounded-xl border border-emerald-200/15 bg-slate-900 shadow-xl shadow-black/40 backdrop-blur-xl">
+          <div class="border-b border-emerald-200/10 p-2">
+            <input
+              #searchInput
+              type="text"
+              class="w-full rounded-lg border border-emerald-200/15 bg-slate-950/60 px-3 py-2 text-xs text-emerald-50 outline-none placeholder:text-emerald-100/30 focus:border-emerald-400/40"
+              placeholder="Search coins..."
+              [value]="coinSearchQuery()"
+              (input)="coinSearchQuery.set($any($event.target).value)"
+              (blur)="closeCoinDropdown()"
+            />
+          </div>
+          <div class="coin-dropdown-list max-h-48 overflow-y-auto py-1">
+            @for (coin of filteredCoins(); track coin.id) {
+              <button
+                type="button"
+                class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs transition hover:bg-emerald-900/30"
+                [class.bg-emerald-900\/20]="coin.id === orderForm.controls.coinId.value"
+                (mousedown)="selectCoin(coin)"
+              >
+                @if (coin.image) {
+                  <img [src]="coin.image" [alt]="coin.symbol" class="h-5 w-5 rounded-full border border-emerald-200/15 object-cover" />
+                } @else {
+                  <span class="grid h-5 w-5 place-items-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 text-[8px] font-bold text-slate-950">{{ coinInitial(coin.symbol) }}</span>
+                }
+                <span class="flex-1 truncate font-medium text-emerald-50">{{ coin.symbol }} <span class="text-emerald-100/40 font-normal">— {{ coin.name }}</span></span>
+                <span class="text-[10px] text-emerald-100/50">{{ coin.currentPrice | number:'1.2-6' }}</span>
+                @if (coin.active) {
+                  <span class="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" title="Active"></span>
+                } @else {
+                  <span class="inline-flex h-1.5 w-1.5 rounded-full bg-rose-400" title="Inactive"></span>
+                }
+              </button>
+            } @empty {
+              <p class="px-3 py-4 text-center text-[10px] text-emerald-100/40">No coins match your search.</p>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- selected coin info pill -->
+    @if (selectedCoin(); as coin) {
+      <div class="flex flex-wrap items-center gap-2 rounded-lg border border-emerald-200/10 bg-slate-900/40 px-3 py-2">
+        <span class="text-[10px] text-emerald-100/40">Price</span>
+        <span class="text-xs font-bold text-emerald-300">{{ coin.currentPrice | number:'1.2-6' }} KRYP</span>
+        <span class="mx-1 h-3 w-px bg-emerald-200/10"></span>
+        <span class="text-[10px] text-emerald-100/40">Mkt Cap</span>
+        <span class="text-xs font-medium text-emerald-100">{{ coin.marketCap | number:'1.0-2' }}</span>
+        <span class="mx-1 h-3 w-px bg-emerald-200/10"></span>
+        @if (coin.active) {
+          <span class="inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-950/40 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-300">
+            <span class="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400"></span> Active
+          </span>
+        } @else {
+          <span class="inline-flex items-center gap-1 rounded-full border border-rose-400/20 bg-rose-950/40 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-rose-300">
+            <span class="inline-flex h-1.5 w-1.5 rounded-full bg-rose-400"></span> Inactive
+          </span>
+        }
+      </div>
+    }
+
+    <!-- side toggle -->
+    <div>
+      <label class="text-[10px] font-medium text-emerald-200/70">Side</label>
+      <div class="mt-1 grid grid-cols-2 gap-1 rounded-lg border border-emerald-200/15 bg-slate-950/50 p-1">
+        <button
+          type="button"
+          class="flex h-9 items-center justify-center gap-1 rounded-md text-xs font-bold transition-all"
+          [class.bg-emerald-500\/20]="orderForm.controls.side.value === 'BUY'"
+          [class.text-emerald-300]="orderForm.controls.side.value === 'BUY'"
+          [class.border]="orderForm.controls.side.value === 'BUY'"
+          [class.border-emerald-400\/30]="orderForm.controls.side.value === 'BUY'"
+          [class.text-emerald-100\/40]="orderForm.controls.side.value !== 'BUY'"
+          (click)="orderForm.controls.side.setValue('BUY')"
+        ><ng-icon name="heroArrowTrendingUp"></ng-icon> BUY</button>
+        <button
+          type="button"
+          class="flex h-9 items-center justify-center gap-1 rounded-md text-xs font-bold transition-all"
+          [class.bg-rose-500\/20]="orderForm.controls.side.value === 'SELL'"
+          [class.text-rose-300]="orderForm.controls.side.value === 'SELL'"
+          [class.border]="orderForm.controls.side.value === 'SELL'"
+          [class.border-rose-400\/30]="orderForm.controls.side.value === 'SELL'"
+          [class.text-emerald-100\/40]="orderForm.controls.side.value !== 'SELL'"
+          (click)="orderForm.controls.side.setValue('SELL')"
+        ><ng-icon name="heroArrowTrendingDown"></ng-icon> SELL</button>
+      </div>
+    </div>
+
+    <!-- type toggle -->
+    <div>
+      <label class="text-[10px] font-medium text-emerald-200/70">Order Type</label>
+      <div class="mt-1 grid grid-cols-2 gap-1 rounded-lg border border-emerald-200/15 bg-slate-950/50 p-1">
+        <button
+          type="button"
+          class="flex h-9 items-center justify-center gap-1 rounded-md text-xs font-semibold transition-all"
+          [class.bg-emerald-900\/50]="orderForm.controls.type.value === 'LIMIT'"
+          [class.text-emerald-50]="orderForm.controls.type.value === 'LIMIT'"
+          [class.border]="orderForm.controls.type.value === 'LIMIT'"
+          [class.border-emerald-400\/20]="orderForm.controls.type.value === 'LIMIT'"
+          [class.text-emerald-100\/40]="orderForm.controls.type.value !== 'LIMIT'"
+          (click)="setOrderType('LIMIT')"
+        >Limit</button>
+        <button
+          type="button"
+          class="flex h-9 items-center justify-center gap-1 rounded-md text-xs font-semibold transition-all"
+          [class.bg-emerald-900\/50]="orderForm.controls.type.value === 'MARKET'"
+          [class.text-emerald-50]="orderForm.controls.type.value === 'MARKET'"
+          [class.border]="orderForm.controls.type.value === 'MARKET'"
+          [class.border-emerald-400\/20]="orderForm.controls.type.value === 'MARKET'"
+          [class.text-emerald-100\/40]="orderForm.controls.type.value !== 'MARKET'"
+          (click)="setOrderType('MARKET')"
+        >Market</button>
+      </div>
+      @if (orderForm.controls.type.value === 'MARKET') {
+        <p class="mt-1.5 text-[9px] text-amber-300/60">Market orders fill against existing orders and are cancelled if no matching orders exist.</p>
+      } @else {
+        <p class="mt-1.5 text-[9px] text-emerald-100/30">Limit orders stay open until a matching order is placed at your price or better.</p>
+      }
+    </div>
+
+    <!-- price (limit only) -->
+    @if (orderForm.controls.type.value === 'LIMIT') {
+      <div>
+        <label class="text-[10px] font-medium text-emerald-200/70" for="price">Limit Price (KRYP)</label>
+        <input id="price" class="mt-1 w-full rounded-lg border border-emerald-200/20 bg-slate-950/60 px-3 py-2.5 text-xs text-emerald-50 outline-none transition focus:border-emerald-400/50" type="number" min="0.000001" step="0.000001" formControlName="price" />
+      </div>
+    }
+
+    <!-- amount -->
+    <div>
+      <label class="text-[10px] font-medium text-emerald-200/70" for="amount">Amount</label>
+      <input id="amount" #amountInput class="mt-1 w-full rounded-lg border border-emerald-200/20 bg-slate-950/60 px-3 py-2.5 text-xs text-emerald-50 outline-none transition focus:border-emerald-400/50" type="number" min="0.000001" step="0.000001" formControlName="amount" />
+    </div>
+
+    <!-- submit -->
+    <button
+      class="w-full rounded-xl px-5 py-2.5 text-sm font-bold shadow-lg transition-all disabled:opacity-50 disabled:grayscale"
+      type="submit"
+      [disabled]="isSubmitting() || !selectedCoin()?.active"
+      [class.bg-gradient-to-r]="true"
+      [class.from-emerald-400]="orderForm.controls.side.value === 'BUY'"
+      [class.to-cyan-400]="orderForm.controls.side.value === 'BUY'"
+      [class.shadow-emerald-400\/20]="orderForm.controls.side.value === 'BUY'"
+      [class.from-rose-400]="orderForm.controls.side.value === 'SELL'"
+      [class.to-orange-400]="orderForm.controls.side.value === 'SELL'"
+      [class.shadow-rose-400\/20]="orderForm.controls.side.value === 'SELL'"
+      [class.text-slate-950]="true"
+    >
+      @if (isSubmitting()) { Submitting... } @else { <ng-icon name="heroBolt"></ng-icon> Place {{ orderForm.controls.side.value }} Order }
+    </button>
+  </form>
+</div>
