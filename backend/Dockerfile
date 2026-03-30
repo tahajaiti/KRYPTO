@@ -18,7 +18,6 @@ COPY wallet-service/build.gradle.kts wallet-service/
 COPY coin-service/build.gradle.kts coin-service/
 COPY trading-service/build.gradle.kts trading-service/
 COPY blockchain-service/build.gradle.kts blockchain-service/
-COPY gamification-service/build.gradle.kts gamification-service/
 
 RUN chmod +x gradlew
 
@@ -35,7 +34,6 @@ COPY wallet-service/src wallet-service/src
 COPY coin-service/src coin-service/src
 COPY trading-service/src trading-service/src
 COPY blockchain-service/src blockchain-service/src
-COPY gamification-service/src gamification-service/src
 
 RUN --mount=type=cache,target=/root/.gradle \
 	./gradlew :${SERVICE_NAME}:bootJar -x test --no-daemon
