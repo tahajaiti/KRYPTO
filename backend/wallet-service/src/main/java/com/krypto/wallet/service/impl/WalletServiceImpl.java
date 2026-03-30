@@ -1,11 +1,24 @@
 package com.krypto.wallet.service.impl;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.krypto.common.dto.ApiResponse;
+import com.krypto.common.dto.PageResponse;
 import com.krypto.common.exception.BusinessException;
 import com.krypto.common.exception.ErrorCode;
 import com.krypto.common.exception.ResourceNotFoundException;
 import com.krypto.common.security.AuthorizationUtils;
 import com.krypto.wallet.client.CoinClient;
-import com.krypto.wallet.client.dto.CoinPriceResponse;
 import com.krypto.wallet.dto.request.DebitKrypRequest;
 import com.krypto.wallet.dto.request.MintCoinRequest;
 import com.krypto.wallet.dto.request.SettleTradeRequest;
@@ -15,31 +28,28 @@ import com.krypto.wallet.dto.response.NetWorthItemResponse;
 import com.krypto.wallet.dto.response.NetWorthResponse;
 import com.krypto.wallet.dto.response.TransferResponse;
 import com.krypto.wallet.dto.response.WalletResponse;
+import com.krypto.wallet.dto.response.WalletTransferItemResponse;
 import com.krypto.wallet.entity.Wallet;
 import com.krypto.wallet.entity.WalletBalance;
+import com.krypto.wallet.entity.WalletTransfer;
 import com.krypto.wallet.mapper.WalletMapper;
 import com.krypto.wallet.repository.WalletBalanceRepository;
 import com.krypto.wallet.repository.WalletRepository;
+import com.krypto.wallet.repository.WalletTransferRepository;
 import com.krypto.wallet.service.WalletService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
+@lombok.extern.slf4j.Slf4j
 public class WalletServiceImpl implements WalletService {
 
     private static final String KRYP_SYMBOL = "KRYP";
 
     private final WalletRepository walletRepository;
     private final WalletBalanceRepository walletBalanceRepository;
+    private final WalletTransferRepository walletTransferRepository;
     private final WalletMapper walletMapper;
     private final CoinClient coinClient;
 
@@ -71,6 +81,27 @@ public class WalletServiceImpl implements WalletService {
         AuthorizationUtils.requireSelfOrRole(userId, "ADMIN");
         Wallet wallet = findWalletByUserId(userId);
         return walletMapper.toBalanceItemResponses(wallet.getBalances());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BalanceItemResponse getBalanceByCoin(UUID userId, UUID coinId) {
+        AuthorizationUtils.requireSelfOrRole(userId, "ADMIN");
+        Wallet wallet = findWalletByUserId(userId);
+        
+        WalletBalance balance;
+        if (coinId == null) {
+            balance = getOrCreateKrypBalance(wallet);
+        } else {
+            balance = walletBalanceRepository.findByWalletIdAndCoinId(wallet.getId(), coinId)
+                    .orElseGet(() -> WalletBalance.builder()
+                            .wallet(wallet)
+                            .coinId(coinId)
+                            .balance(BigDecimal.ZERO)
+                            .build());
+        }
+        
+        return walletMapper.toBalanceItemResponse(balance);
     }
 
     @Override
@@ -175,12 +206,57 @@ public class WalletServiceImpl implements WalletService {
         walletBalanceRepository.save(fromKryp);
         walletBalanceRepository.save(toKryp);
 
-        return TransferResponse.builder()
+        WalletTransfer transfer = walletTransferRepository.save(
+            WalletTransfer.builder()
                 .fromUserId(fromUserId)
                 .toUserId(request.getToUserId())
                 .amount(request.getAmount())
                 .transferredAt(Instant.now())
+                .build()
+        );
+
+        return TransferResponse.builder()
+                .fromUserId(fromUserId)
+                .toUserId(request.getToUserId())
+                .amount(request.getAmount())
+            .transferredAt(transfer.getTransferredAt())
                 .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<WalletTransferItemResponse> getCurrentUserTransferHistory(int page, int size) {
+        UUID userId = AuthorizationUtils.requireUserId();
+        int sanitizedPage = Math.max(page, 0);
+        int sanitizedSize = Math.clamp(size, 1, 200);
+
+        Page<WalletTransfer> transferPage = walletTransferRepository.findByFromUserIdOrToUserId(
+                userId,
+                userId,
+                PageRequest.of(sanitizedPage, sanitizedSize, Sort.by(Sort.Direction.DESC, "transferredAt"))
+        );
+
+        List<WalletTransferItemResponse> content = transferPage
+                .getContent()
+                .stream()
+                .map(transfer -> WalletTransferItemResponse.builder()
+                        .id(transfer.getId())
+                        .fromUserId(transfer.getFromUserId())
+                        .toUserId(transfer.getToUserId())
+                        .amount(transfer.getAmount())
+                        .transferredAt(transfer.getTransferredAt())
+                        .build())
+                .toList();
+
+        return PageResponse.of(
+                content,
+                transferPage.getNumber(),
+                transferPage.getSize(),
+                transferPage.getTotalElements(),
+                transferPage.getNumberOfElements(),
+                "transferredAt",
+                "DESC"
+        );
     }
 
     @Override
@@ -217,12 +293,51 @@ public class WalletServiceImpl implements WalletService {
         }
 
         Wallet wallet = findWalletByUserId(userId);
+        List<WalletBalance> balances = wallet.getBalances();
+
+        java.util.Set<UUID> coinIds = balances.stream()
+                .map(WalletBalance::getCoinId)
+                .filter(java.util.Objects::nonNull)
+                .collect(java.util.stream.Collectors.toSet());
+
+        java.util.Map<UUID, BigDecimal> priceMap = new java.util.HashMap<>();
+        if (!coinIds.isEmpty()) {
+            try {
+                ApiResponse<java.util.Map<UUID, BigDecimal>> response = coinClient.getCoinPricesBatch(coinIds);
+                if (response != null && response.getData() != null) {
+                    for (java.util.Map.Entry<?, BigDecimal> entry : response.getData().entrySet()) {
+                        UUID key;
+                        Object k = entry.getKey();
+                        if (k instanceof String) {
+                            key = UUID.fromString((String) k);
+                        } else if (k instanceof UUID) {
+                            key = (UUID) k;
+                        } else {
+                            continue;
+                        }
+                        priceMap.put(key, entry.getValue());
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to fetch batch coin prices for net worth calculation: {}", e.getMessage());
+            }
+        }
 
         BigDecimal total = BigDecimal.ZERO;
         List<NetWorthItemResponse> breakdown = new java.util.ArrayList<>();
 
-        for (WalletBalance balance : wallet.getBalances()) {
-            BigDecimal priceInKryp = resolvePriceInKryp(balance);
+        for (WalletBalance balance : balances) {
+            BigDecimal priceInKryp;
+            boolean isKryp = balance.getSymbol() != null && KRYP_SYMBOL.equalsIgnoreCase(balance.getSymbol());
+
+            if (isKryp) {
+                priceInKryp = BigDecimal.ONE;
+            } else if (balance.getCoinId() != null) {
+                priceInKryp = priceMap.getOrDefault(balance.getCoinId(), BigDecimal.ZERO);
+            } else {
+                priceInKryp = BigDecimal.ZERO;
+            }
+
             BigDecimal valueInKryp = balance.getBalance().multiply(priceInKryp);
             total = total.add(valueInKryp);
 
@@ -235,33 +350,13 @@ public class WalletServiceImpl implements WalletService {
                     .build());
         }
 
+        log.info("Calculated net worth for user {}: total={} KRYP (from {} assets)", userId, total, breakdown.size());
+
         return NetWorthResponse.builder()
                 .userId(userId)
                 .totalNetWorthInKryp(total)
                 .breakdown(breakdown)
                 .build();
-    }
-
-    private BigDecimal resolvePriceInKryp(WalletBalance walletBalance) {
-        if (walletBalance.getSymbol() != null && KRYP_SYMBOL.equals(walletBalance.getSymbol().toUpperCase(Locale.ROOT))) {
-            return BigDecimal.ONE;
-        }
-
-        if (walletBalance.getCoinId() == null) {
-            return BigDecimal.ZERO;
-        }
-
-        try {
-            var response = coinClient.getCoinPrice(walletBalance.getCoinId());
-            CoinPriceResponse data = response != null ? response.getData() : null;
-            if (data == null || data.getCurrentPrice() == null) {
-                return BigDecimal.ZERO;
-            }
-            return data.getCurrentPrice();
-        } catch (Exception ignored) {
-            // coin-service may be unavailable or not expose price endpoint yet
-            return BigDecimal.ZERO;
-        }
     }
 
     private WalletBalance getOrCreateKrypBalance(Wallet wallet) {
