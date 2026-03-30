@@ -4,12 +4,12 @@ import com.krypto.blockchain.dto.request.AddTransactionRequest;
 import com.krypto.blockchain.config.RabbitMQConfig;
 import com.krypto.blockchain.model.TransactionType;
 import com.krypto.blockchain.service.BlockchainService;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.support.AmqpHeaders;
+import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -24,55 +24,42 @@ public class BlockchainTransactionListener {
     private final ObjectMapper objectMapper;
 
     @RabbitListener(queues = RabbitMQConfig.BLOCKCHAIN_TRANSACTION_QUEUE)
-    public void onTransaction(Object payload,
-                              @Header(name = AmqpHeaders.MESSAGE_ID, required = false) String messageId) {
-        AddTransactionRequest request = toRequest(payload, messageId);
-        blockchainService.addTransaction(request);
+    public void onTransaction(Message message) {
+        try {
+            Map<String, Object> map = objectMapper.readValue(message.getBody(), new TypeReference<>() {});
+            AddTransactionRequest request = mapToRequest(map, message.getMessageProperties().getMessageId());
+            blockchainService.addTransaction(request);
+        } catch (Exception e) {
+            log.error("failed to process blockchain transaction: {}", e.getMessage(), e);
+            throw new RuntimeException("failed to process blockchain transaction", e);
+        }
     }
 
-    @SuppressWarnings("unchecked")
-    private AddTransactionRequest toRequest(Object payload, String messageId) {
-        if (payload instanceof AddTransactionRequest request) {
-            if (request.getSourceEventId() == null || request.getSourceEventId().isBlank()) {
-                request.setSourceEventId(messageId);
-            }
-            return request;
+    private AddTransactionRequest mapToRequest(Map<String, Object> map, String messageId) {
+        AddTransactionRequest request = new AddTransactionRequest();
+        request.setType(resolveType(map));
+        request.setFromUserId(asString(map.get("fromUserId")));
+        request.setToUserId(asString(map.get("toUserId")));
+        request.setCoinSymbol(asString(map.get("coinSymbol")));
+        request.setAmount(asBigDecimal(map.get("amount")));
+        request.setFee(asBigDecimalOrZero(map.get("fee")));
+
+        String sourceEventId = firstNonBlank(
+                asString(map.get("sourceEventId")),
+                asString(map.get("tradeId")),
+                messageId
+        );
+        request.setSourceEventId(sourceEventId);
+
+        Long eventTimestamp = asLong(map.get("eventTimestamp"));
+        if (eventTimestamp == null) {
+            eventTimestamp = asLong(map.get("executedAt"));
         }
-
-        if (payload instanceof Map<?, ?> rawMap) {
-            Map<String, Object> map = (Map<String, Object>) rawMap;
-
-            AddTransactionRequest request = new AddTransactionRequest();
-            request.setType(resolveType(map));
-            request.setFromUserId(asString(map.get("fromUserId")));
-            request.setToUserId(asString(map.get("toUserId")));
-            request.setCoinSymbol(asString(map.get("coinSymbol")));
-            request.setAmount(asBigDecimal(map.get("amount")));
-            request.setFee(asBigDecimalOrZero(map.get("fee")));
-
-            String sourceEventId = firstNonBlank(
-                    asString(map.get("sourceEventId")),
-                    asString(map.get("tradeId")),
-                    messageId
-            );
-            request.setSourceEventId(sourceEventId);
-
-            Long eventTimestamp = asLong(map.get("eventTimestamp"));
-            if (eventTimestamp == null) {
-                eventTimestamp = asLong(map.get("executedAt"));
-            }
-            if (eventTimestamp == null) {
-                eventTimestamp = asLong(map.get("simulatedAt"));
-            }
-            request.setEventTimestamp(eventTimestamp);
-
-            return request;
+        if (eventTimestamp == null) {
+            eventTimestamp = asLong(map.get("simulatedAt"));
         }
+        request.setEventTimestamp(eventTimestamp);
 
-        AddTransactionRequest request = objectMapper.convertValue(payload, AddTransactionRequest.class);
-        if (request.getSourceEventId() == null || request.getSourceEventId().isBlank()) {
-            request.setSourceEventId(messageId);
-        }
         return request;
     }
 
