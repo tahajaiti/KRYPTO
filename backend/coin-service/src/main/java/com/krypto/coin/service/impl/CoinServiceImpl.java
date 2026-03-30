@@ -3,16 +3,18 @@ package com.krypto.coin.service.impl;
 import com.krypto.coin.client.WalletClient;
 import com.krypto.coin.client.dto.DebitKrypRequest;
 import com.krypto.coin.client.dto.MintCoinRequest;
-import com.krypto.coin.config.RabbitMQConfig;
 import com.krypto.coin.dto.request.CreateCoinRequest;
 import com.krypto.coin.dto.request.RecordTradeRequest;
+import com.krypto.coin.dto.response.CoinInvestmentPreferenceResponse;
+import com.krypto.coin.dto.response.CoinPriceHistoryPointResponse;
 import com.krypto.coin.dto.response.CoinPriceResponse;
 import com.krypto.coin.dto.response.CoinResponse;
+import com.krypto.coin.entity.CoinInvestmentPreference;
 import com.krypto.coin.entity.Coin;
 import com.krypto.coin.entity.PriceHistory;
-import com.krypto.coin.event.CoinCreatedEvent;
 import com.krypto.coin.mapper.CoinMapper;
 import com.krypto.coin.repository.CoinRepository;
+import com.krypto.coin.repository.CoinInvestmentPreferenceRepository;
 import com.krypto.coin.repository.PriceHistoryRepository;
 import com.krypto.coin.service.CoinService;
 import com.krypto.common.dto.PageResponse;
@@ -23,11 +25,11 @@ import com.krypto.common.security.AuthorizationUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -37,6 +39,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -47,9 +52,9 @@ public class CoinServiceImpl implements CoinService {
 
     private final CoinRepository coinRepository;
     private final PriceHistoryRepository priceHistoryRepository;
+    private final CoinInvestmentPreferenceRepository coinInvestmentPreferenceRepository;
     private final CoinMapper coinMapper;
     private final WalletClient walletClient;
-    private final RabbitTemplate rabbitTemplate;
 
     @Value("${coin.creation-fee:100}")
     private BigDecimal creationFee;
@@ -107,7 +112,6 @@ public class CoinServiceImpl implements CoinService {
         priceHistoryRepository.save(firstPrice);
 
         mintInitialSupplyToCreator(saved);
-        publishCoinCreatedEvent(saved);
 
         return coinMapper.toResponse(saved);
     }
@@ -115,23 +119,30 @@ public class CoinServiceImpl implements CoinService {
     @Override
     @Transactional(readOnly = true)
     public CoinResponse getCoinById(UUID id) {
-        Coin coin = coinRepository.findByIdAndActiveTrue(id)
+        Coin coin = coinRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Coin", id));
         return coinMapper.toResponse(coin);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<CoinResponse> listCoins(String query, Pageable pageable) {
+    public PageResponse<CoinResponse> listCoins(String query, boolean activeOnly, Pageable pageable) {
         Page<Coin> page;
         if (query == null || query.isBlank()) {
-            page = coinRepository.findByActiveTrue(pageable);
+            page = activeOnly ? coinRepository.findByActiveTrue(pageable) : coinRepository.findAll(pageable);
         } else {
             String term = query.trim();
-            page = coinRepository.findByActiveTrueAndNameContainingIgnoreCaseOrActiveTrueAndSymbolContainingIgnoreCase(
-                    term,
-                    term,
-                    pageable);
+            if (activeOnly) {
+                page = coinRepository.findByActiveTrueAndNameContainingIgnoreCaseOrActiveTrueAndSymbolContainingIgnoreCase(
+                        term,
+                        term,
+                        pageable);
+            } else {
+                page = coinRepository.findByNameContainingIgnoreCaseOrSymbolContainingIgnoreCase(
+                        term,
+                        term,
+                        pageable);
+            }
         }
 
         Sort.Order sortOrder = pageable.getSort().stream().findFirst().orElse(null);
@@ -152,15 +163,123 @@ public class CoinServiceImpl implements CoinService {
     @Transactional(readOnly = true)
     @Cacheable(value = "coin-price", key = "#id")
     public CoinPriceResponse getCoinPrice(UUID id) {
-        Coin coin = coinRepository.findByIdAndActiveTrue(id)
+        Coin coin = coinRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Coin", id));
 
         return CoinPriceResponse.builder()
                 .coinId(coin.getId())
                 .symbol(coin.getSymbol())
                 .currentPrice(coin.getCurrentPrice())
+                .active(coin.isActive())
                 .build();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.Map<UUID, BigDecimal> getCoinPricesBatch(java.util.Set<UUID> coinIds) {
+        if (coinIds == null || coinIds.isEmpty()) return Collections.emptyMap();
+        return coinRepository.findAllById(coinIds).stream()
+                .collect(java.util.stream.Collectors.toMap(Coin::getId, Coin::getCurrentPrice));
+    }
+
+            @Override
+            @Transactional(readOnly = true)
+            public List<CoinPriceHistoryPointResponse> getCoinPriceHistory(UUID id, Integer points, Instant from, Instant to) {
+            coinRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Coin", id));
+
+            List<PriceHistory> history;
+            if (from != null && to != null && from.isBefore(to)) {
+                history = priceHistoryRepository.findByCoinIdAndRecordedAtBetweenOrderByRecordedAtAsc(id, from, to);
+            } else {
+                int safePoints = Math.max(10, Math.min(points == null ? 200 : points, 1000));
+                history = priceHistoryRepository.findByCoinIdOrderByRecordedAtDesc(id, PageRequest.of(0, safePoints));
+                Collections.reverse(history);
+            }
+
+            List<CoinPriceHistoryPointResponse> response = new ArrayList<>();
+            for (PriceHistory point : history) {
+                response.add(CoinPriceHistoryPointResponse.builder()
+                    .price(point.getPrice())
+                    .volume(point.getVolume())
+                    .recordedAt(point.getRecordedAt())
+                    .build());
+            }
+
+            return response;
+            }
+
+            @Override
+            @Transactional(readOnly = true)
+            public CoinInvestmentPreferenceResponse getInvestmentPreference(UUID coinId) {
+            coinRepository.findByIdAndActiveTrue(coinId)
+                .orElseThrow(() -> new ResourceNotFoundException("Coin", coinId));
+
+            UUID userId = AuthorizationUtils.requireUserId();
+            boolean investing = coinInvestmentPreferenceRepository
+                .findByUserIdAndCoinId(userId, coinId)
+                .map(CoinInvestmentPreference::isInvesting)
+                .orElse(false);
+
+            return CoinInvestmentPreferenceResponse.builder()
+                .coinId(coinId)
+                .investing(investing)
+                .build();
+            }
+
+            @Override
+            @Transactional
+            public CoinInvestmentPreferenceResponse updateInvestmentPreference(UUID coinId, boolean investing) {
+            coinRepository.findByIdAndActiveTrue(coinId)
+                .orElseThrow(() -> new ResourceNotFoundException("Coin", coinId));
+
+            UUID userId = AuthorizationUtils.requireUserId();
+            CoinInvestmentPreference preference = coinInvestmentPreferenceRepository
+                .findByUserIdAndCoinId(userId, coinId)
+                .orElseGet(() -> CoinInvestmentPreference.builder()
+                    .userId(userId)
+                    .coinId(coinId)
+                    .investing(false)
+                    .build());
+
+            preference.setInvesting(investing);
+            coinInvestmentPreferenceRepository.save(preference);
+
+            return CoinInvestmentPreferenceResponse.builder()
+                .coinId(coinId)
+                .investing(preference.isInvesting())
+                .build();
+            }
+
+            @Override
+            @Transactional(readOnly = true)
+            public List<CoinInvestmentPreferenceResponse> getMyInvestments() {
+            UUID userId = AuthorizationUtils.requireUserId();
+            
+            return coinInvestmentPreferenceRepository.findByUserIdAndInvestingTrue(userId)
+                .stream()
+                .map(item -> CoinInvestmentPreferenceResponse.builder()
+                    .coinId(item.getCoinId())
+                    .investing(true)
+                    .build())
+                .toList();
+            }
+
+            @Override
+            @Transactional(readOnly = true)
+            public List<CoinResponse> getWatchedCoins(UUID userId) {
+            List<UUID> coinIds = coinInvestmentPreferenceRepository.findByUserIdAndInvestingTrue(userId)
+                .stream()
+                .map(CoinInvestmentPreference::getCoinId)
+                .toList();
+            
+            if (coinIds.isEmpty()) return List.of();
+            
+            return coinRepository.findAllById(coinIds).stream()
+                .filter(Coin::isActive)
+                .map(coinMapper::toResponse)
+                .toList();
+            }
 
     @Override
     @Transactional
@@ -187,6 +306,7 @@ public class CoinServiceImpl implements CoinService {
                 .coinId(savedCoin.getId())
                 .symbol(savedCoin.getSymbol())
                 .currentPrice(savedCoin.getCurrentPrice())
+                .active(savedCoin.isActive())
                 .build();
     }
 
@@ -219,26 +339,6 @@ public class CoinServiceImpl implements CoinService {
         }
     }
 
-    private void publishCoinCreatedEvent(Coin coin) {
-        try {
-            var event = CoinCreatedEvent.builder()
-                    .coinId(coin.getId().toString())
-                    .userId(coin.getCreatorId().toString())
-                    .symbol(coin.getSymbol())
-                    .initialSupply(coin.getInitialSupply().longValue())
-                    .createdAt(Instant.now().toEpochMilli())
-                    .build();
-
-            rabbitTemplate.convertAndSend(
-                    RabbitMQConfig.COIN_EXCHANGE,
-                    RabbitMQConfig.COIN_CREATED_ROUTING_KEY,
-                    event
-            );
-        } catch (Exception ex) {
-            log.warn("failed to publish coin.created event for coin {}", coin.getId(), ex);
-        }
-    }
-
     private void assertInternalSecret(String providedSecret) {
         if (providedSecret == null || !providedSecret.equals(internalSecret)) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "invalid internal secret");
@@ -253,5 +353,34 @@ public class CoinServiceImpl implements CoinService {
         BigDecimal raw = creationFee.divide(initialSupply, 18, RoundingMode.HALF_UP);
         BigDecimal min = new BigDecimal("0.0001");
         return raw.compareTo(min) < 0 ? min : raw;
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "coin-price", key = "#id")
+    public CoinResponse updateCoinStatus(UUID id, boolean active) {
+        Coin coin = coinRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Coin", id));
+        coin.setActive(active);
+        return coinMapper.toResponse(coinRepository.save(coin));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<CoinResponse> getByCreatorId(UUID creatorId, Pageable pageable) {
+        Page<Coin> page = coinRepository.findByCreatorId(creatorId, pageable);
+
+        Sort.Order sortOrder = pageable.getSort().stream().findFirst().orElse(null);
+        String sortBy = sortOrder != null ? sortOrder.getProperty() : null;
+        String sortDirection = sortOrder != null ? sortOrder.getDirection().name() : null;
+
+        return PageResponse.of(
+                coinMapper.toResponseList(page.getContent()),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getNumberOfElements(),
+                sortBy,
+                sortDirection);
     }
 }
