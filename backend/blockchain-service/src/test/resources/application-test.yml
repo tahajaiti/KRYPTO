@@ -16,6 +16,3 @@ blockchain:
   difficulty: 2
   max-transactions-per-block: 3
   idempotency-window-size: 1000
-  persistence:
-    enabled: true
-    file-path: build/test-data/blockchain-state.json
