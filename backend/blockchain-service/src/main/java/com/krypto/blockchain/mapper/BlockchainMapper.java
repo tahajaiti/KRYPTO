@@ -26,7 +26,7 @@ public class BlockchainMapper {
 
     public TransactionResponse toTransactionResponse(ChainTransaction tx) {
         return TransactionResponse.builder()
-                .id(tx.getId())
+                .id(tx.getId() != null ? tx.getId().toString() : null)
                 .type(tx.getType())
                 .fromUserId(tx.getFromUserId())
                 .toUserId(tx.getToUserId())
