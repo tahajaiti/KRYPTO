@@ -22,4 +22,5 @@ public class UserResponse {
     private Role role;
     private boolean enabled;
     private Instant createdAt;
+    private boolean tutorialCompleted;
 }
