@@ -84,15 +84,11 @@ Main properties (from config-repo):
 - `blockchain.difficulty` (default `3`)
 - `blockchain.max-transactions-per-block` (default `5`)
 - `blockchain.idempotency-window-size` (default `10000`)
-- `blockchain.persistence.enabled` (default `true`)
-- `blockchain.persistence.file-path` (default `data/blockchain/state.json`)
+- `spring.datasource.*` for PostgreSQL connectivity
+- `spring.jpa.*` for schema management and ORM behavior
 
 Persistence behavior:
-- restores chain + pending tx + idempotency cache on startup
-- persists state on transaction enqueue and after block mining
-- file-based persistence for current phase (no database dependency)
-
-## Current limitations
-
-- chain is still in-memory (no persistence across restarts yet)
-- no DLQ/retry policy customization yet for failed message processing
+- chain and transactions are persisted in PostgreSQL via JPA entities
+- pending transactions are stored with status tracking (`PENDING` -> `MINED`)
+- idempotency is enforced with `sourceEventId` uniqueness in database
+- genesis block is initialized once at startup if storage is empty
