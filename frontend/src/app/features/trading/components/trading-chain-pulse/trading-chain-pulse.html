@@ -1,0 +1,14 @@
+<div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+  <div class="krypto-stat-card text-center">
+    <p class="krypto-label">Block</p>
+    <p class="mt-1 text-sm font-bold text-violet-300">#{{ block().index }}</p>
+  </div>
+  <div class="krypto-stat-card text-center">
+    <p class="krypto-label">Transactions</p>
+    <p class="mt-1 text-sm font-bold text-emerald-300">{{ block().transactionCount }}</p>
+  </div>
+  <div class="krypto-stat-card text-center sm:col-span-2">
+    <p class="krypto-label">Hash</p>
+    <p class="mt-1 truncate text-[10px] font-medium text-emerald-100/50">{{ block().hash }}</p>
+  </div>
+</div>
