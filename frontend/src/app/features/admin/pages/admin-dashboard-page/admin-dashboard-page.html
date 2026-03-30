@@ -1,0 +1,303 @@
+<section class="krypto-fade-in grid content-start min-h-[calc(100dvh-9rem)] py-6">
+  <div class="mx-auto grid w-full max-w-6xl gap-4 px-4">
+
+    <!-- header -->
+    <div class="krypto-card-header p-5 flex items-center justify-between">
+      <div>
+        <h1 class="font-['Space_Grotesk'] text-2xl font-bold text-emerald-50 flex items-center gap-2">
+          <ng-icon name="heroWrench"></ng-icon> Admin Dashboard
+        </h1>
+        <p class="mt-1 text-xs text-emerald-100/50">System-wide control center for users, assets, and the ledger.</p>
+      </div>
+      <button (click)="loadDashboard()" [disabled]="isLoading()"
+        class="flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-200/15 bg-slate-900/40 text-emerald-100/70 transition hover:bg-slate-900/60 disabled:opacity-50">
+        <ng-icon name="heroArrowPath" [class.animate-spin]="isLoading()"></ng-icon>
+      </button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex items-center gap-6 border-b border-emerald-200/10 px-2 lg:px-6">
+      <button class="relative py-4 text-xs font-semibold sm:text-sm transition-colors decoration-transparent"
+        [class.text-emerald-400]="activeTab() === 'overview'"
+        [class.text-emerald-100]="activeTab() !== 'overview'"
+        (click)="setTab('overview')">
+        Overview
+        @if (activeTab() === 'overview') {
+          <div class="absolute inset-x-0 bottom-0 h-0.5 rounded-t-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></div>
+        }
+      </button>
+      <button class="relative py-4 text-xs font-semibold sm:text-sm transition-colors decoration-transparent"
+        [class.text-emerald-400]="activeTab() === 'users'"
+        [class.text-emerald-100]="activeTab() !== 'users'"
+        (click)="setTab('users')">
+        Users
+        @if (activeTab() === 'users') {
+          <div class="absolute inset-x-0 bottom-0 h-0.5 rounded-t-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></div>
+        }
+      </button>
+      <button class="relative py-4 text-xs font-semibold sm:text-sm transition-colors decoration-transparent"
+        [class.text-emerald-400]="activeTab() === 'coins'"
+        [class.text-emerald-100]="activeTab() !== 'coins'"
+        (click)="setTab('coins')">
+        Coins
+        @if (activeTab() === 'coins') {
+          <div class="absolute inset-x-0 bottom-0 h-0.5 rounded-t-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></div>
+        }
+      </button>
+      <button class="relative py-4 text-xs font-semibold sm:text-sm transition-colors decoration-transparent"
+        [class.text-emerald-400]="activeTab() === 'blockchain'"
+        [class.text-emerald-100]="activeTab() !== 'blockchain'"
+        (click)="setTab('blockchain')">
+        Blockchain
+        @if (activeTab() === 'blockchain') {
+          <div class="absolute inset-x-0 bottom-0 h-0.5 rounded-t-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></div>
+        }
+      </button>
+    </div>
+
+    @if (isLoading()) {
+      <div class="flex flex-col items-center justify-center p-20 gap-4">
+        <div class="h-10 w-10 border-4 border-emerald-400/20 border-t-emerald-400 rounded-full animate-spin"></div>
+        <p class="text-sm text-emerald-100/40">Fetching system data...</p>
+      </div>
+    } @else {
+      <!-- Tab 1: Overview -->
+      @if (activeTab() === 'overview') {
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div class="krypto-stat-card">
+            <p class="krypto-label text-emerald-400/60">Total Users</p>
+            <p class="mt-1 text-2xl font-bold text-emerald-100">{{ users().length }}</p>
+          </div>
+          <div class="krypto-stat-card">
+            <p class="krypto-label text-cyan-400/60">Listed Coins</p>
+            <p class="mt-1 text-2xl font-bold text-cyan-100">{{ coins().length }}</p>
+          </div>
+          <div class="krypto-stat-card">
+            <p class="krypto-label text-rose-400/60">Active Blocks</p>
+            <p class="mt-1 text-2xl font-bold text-rose-100">{{ blocks().length }}+</p>
+          </div>
+          <div class="krypto-stat-card">
+            <p class="krypto-label text-amber-400/60">Market Volume</p>
+            <p class="mt-1 text-2xl font-bold text-amber-100">Active</p>
+          </div>
+        </div>
+
+        <div class="mt-4 krypto-card p-5">
+          <h2 class="text-sm font-semibold text-amber-200 flex items-center gap-1.5"><ng-icon name="heroTrophy"></ng-icon> Top Performing Traders</h2>
+          <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-emerald-100">
+            @for (entry of topTraders(); track entry.userId; let i = $index) {
+              <a class="flex items-center gap-3 rounded-lg border border-emerald-200/5 bg-slate-900/20 p-3 no-underline transition hover:bg-slate-900/40" [routerLink]="['/users', entry.userId]">
+                <span class="grid h-8 w-8 place-items-center rounded-lg bg-emerald-400/10 font-bold text-emerald-400 text-xs">{{ i + 1 }}</span>
+                <div class="min-w-0">
+                  <p class="truncate text-xs font-semibold">{{ entry.userId }}</p>
+                  <p class="text-[10px] text-emerald-100/40">{{ entry.trades }} trades · {{ entry.totalVolume | number:'1.0-2' }} Vol</p>
+                </div>
+              </a>
+            } @empty {
+              <p class="col-span-4 mt-2 text-xs text-emerald-100/40 flex items-center gap-2"><ng-icon name="heroBell"></ng-icon> No trading snapshots available.</p>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Tab 2: Users -->
+      @if (activeTab() === 'users') {
+        <div class="krypto-card overflow-hidden">
+          <div class="p-4 border-b border-emerald-200/5">
+            <h2 class="text-sm font-semibold text-emerald-200 flex items-center gap-1.5"><ng-icon name="heroUsers"></ng-icon> User Management</h2>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs text-left">
+              <thead class="bg-slate-900/60 text-emerald-100/50 uppercase tracking-tighter">
+                <tr>
+                  <th class="px-5 py-3 font-medium">Identity</th>
+                  <th class="hidden px-5 py-3 font-medium sm:table-cell">Contact</th>
+                  <th class="px-5 py-3 font-medium text-center">Privileges</th>
+                  <th class="px-5 py-3 font-medium text-center">Status</th>
+                  <th class="px-5 py-3 font-medium text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-emerald-200/5">
+                @for (user of users(); track user.id) {
+                  <tr class="transition hover:bg-emerald-200/[0.02]">
+                    <td class="px-5 py-4">
+                      <div class="flex items-center gap-3">
+                        <span class="grid h-7 w-7 place-items-center rounded-lg bg-emerald-400/10 text-[10px] font-bold text-emerald-400">{{ user.username.slice(0, 2).toUpperCase() }}</span>
+                        <div class="min-w-0">
+                          <p class="font-semibold text-emerald-50 truncate">{{ user.username }}</p>
+                          <p class="text-[10px] text-emerald-100/40">Joined {{ user.createdAt | date:'shortDate' }}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="hidden px-5 py-4 text-emerald-100/50 sm:table-cell">{{ user.email }}</td>
+                    <td class="px-5 py-4 text-center">
+                      <select [value]="user.role"
+                        (change)="changeUserRole(user, $any($event.target).value)"
+                        [disabled]="actionLoading()[user.id + '-role'] || user.id === currentUserId()"
+                        class="bg-slate-900/60 border border-emerald-200/15 rounded text-[10px] p-1 text-emerald-100 focus:outline-none focus:border-emerald-400 disabled:opacity-50">
+                        <option value="PLAYER">PLAYER</option>
+                        <option value="ADMIN">ADMIN</option>
+                      </select>
+                    </td>
+                    <td class="px-5 py-4 text-center">
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase transition"
+                        [ngClass]="user.enabled ? 'bg-emerald-400/10 text-emerald-400' : 'bg-rose-400/10 text-rose-400'">
+                        {{ user.enabled ? 'Active' : 'Banned' }}
+                      </span>
+                    </td>
+                    <td class="px-5 py-4 text-right">
+                      <div class="flex justify-end gap-2">
+                        <button (click)="toggleUserStatus(user)"
+                          [disabled]="actionLoading()[user.id] || user.id === currentUserId()"
+                          class="h-7 px-3 rounded border border-rose-500/20 bg-rose-500/5 text-[10px] font-bold hover:bg-rose-500/10 text-rose-300 transition disabled:opacity-30">
+                          {{ user.enabled ? 'Deactivate' : 'Enable' }}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <!-- Tab 3: Coins -->
+      @if (activeTab() === 'coins') {
+        <div class="krypto-card overflow-hidden">
+          <div class="p-4 border-b border-emerald-200/5">
+            <h2 class="text-sm font-semibold text-cyan-200 flex items-center gap-1.5"><ng-icon name="heroCube"></ng-icon> Asset Custody</h2>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs text-left">
+              <thead class="bg-slate-900/60 text-emerald-100/50 uppercase tracking-tighter">
+                <tr>
+                  <th class="px-5 py-3 font-medium">Asset</th>
+                  <th class="hidden px-5 py-3 font-medium text-right sm:table-cell">Valuation</th>
+                  <th class="hidden px-5 py-3 font-medium text-right md:table-cell">Supply</th>
+                  <th class="px-5 py-3 font-medium text-center">Market</th>
+                  <th class="px-5 py-3 font-medium text-right">Operations</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-emerald-200/5">
+                @for (coin of coins(); track coin.id) {
+                  <tr class="transition hover:bg-emerald-200/[0.02]">
+                    <td class="px-5 py-4">
+                      <div class="flex items-center gap-3">
+                        <span class="grid h-7 w-7 place-items-center rounded-lg bg-cyan-400/10 text-[10px] font-bold text-cyan-400">{{ coin.symbol.slice(0, 2).toUpperCase() }}</span>
+                        <div>
+                          <p class="font-semibold text-emerald-50">{{ coin.symbol }}</p>
+                          <p class="text-[10px] text-emerald-100/40 truncate max-w-[120px]">{{ coin.name }}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="hidden px-5 py-4 text-right font-mono text-emerald-100 sm:table-cell">{{ coin.currentPrice | number:'1.2-8' }}</td>
+                    <td class="hidden px-5 py-4 text-right text-emerald-100/40 md:table-cell uppercase">{{ (coin.currentSupply || 0) | number:'1.0-0' }}</td>
+                    <td class="px-5 py-4 text-center">
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase"
+                        [ngClass]="coin.active ? 'bg-emerald-400/10 text-emerald-400' : 'bg-rose-400/10 text-rose-400'">
+                        {{ coin.active ? 'Trading' : 'Suspended' }}
+                      </span>
+                    </td>
+                    <td class="px-5 py-4 text-right">
+                      <button (click)="toggleCoinStatus(coin)" [disabled]="actionLoading()[coin.id]"
+                        class="h-7 px-3 rounded border border-emerald-200/15 bg-slate-900/40 text-[10px] font-bold hover:bg-emerald-200/5 transition disabled:opacity-50">
+                        {{ coin.active ? 'Suspend' : 'Resume' }}
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <!-- Tab 4: Blockchain -->
+      @if (activeTab() === 'blockchain') {
+        <div class="grid gap-4 md:grid-cols-3">
+          <!-- Blockchain stats & actions -->
+          <div class="md:col-span-1 space-y-4">
+            <div class="krypto-card p-5">
+              <h3 class="text-sm font-bold text-emerald-100 mb-4 flex items-center gap-2"><ng-icon name="heroBolt"></ng-icon> Chain Maintenance</h3>
+              <div class="space-y-4">
+                <button (click)="mineBlocks()" [disabled]="actionLoading()['mine']"
+                  class="w-full flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-500 p-2.5 text-xs font-bold text-white shadow-lg transition hover:from-emerald-500 hover:to-emerald-400 disabled:opacity-50">
+                  <ng-icon name="heroFire" [class.animate-pulse]="actionLoading()['mine']"></ng-icon>
+                  {{ actionLoading()['mine'] ? 'Mining Process...' : 'Mine Pending Batch' }}
+                </button>
+                <button (click)="verifyChain()" [disabled]="actionLoading()['verify']"
+                  class="w-full flex items-center justify-center gap-2 rounded-lg border border-emerald-400/30 bg-emerald-400/5 p-2.5 text-xs font-bold text-emerald-400 transition hover:bg-emerald-400/10 disabled:opacity-50">
+                  <ng-icon name="heroShieldCheck" [class.animate-bounce]="actionLoading()['verify']"></ng-icon>
+                  Verify Integrity
+                </button>
+              </div>
+
+              @if (validationResult()) {
+                <div class="mt-4 rounded-lg p-3 text-xs"
+                  [ngClass]="validationResult()?.valid ? 'bg-emerald-400/10 border border-emerald-400/20 text-emerald-300' : 'bg-rose-400/10 border border-rose-400/20 text-rose-300'">
+                  <div class="flex items-center gap-2 font-bold mb-1">
+                    <ng-icon [name]="validationResult()?.valid ? 'heroCheckBadge' : 'heroExclamationCircle'"></ng-icon>
+                    {{ validationResult()?.valid ? 'Ledger Verified' : 'Integrity Compromised' }}
+                  </div>
+                  <p class="opacity-70">{{ validationResult()?.message }}</p>
+                  <p class="mt-1 opacity-70">Block count: {{ validationResult()?.blockCount }}</p>
+                </div>
+              }
+            </div>
+
+            <div class="krypto-card p-5">
+              <h3 class="text-xs font-bold text-emerald-100/50 uppercase tracking-widest mb-3">Protocol Specs</h3>
+              <div class="space-y-2 text-xs">
+                <div class="flex justify-between"><span class="text-emerald-100/40">Difficulty</span> <span class="text-emerald-100">Lvl 3 (SHA-256)</span></div>
+                <div class="flex justify-between"><span class="text-emerald-100/40">Block Target</span> <span class="text-emerald-100">10 Transactions</span></div>
+                <div class="flex justify-between"><span class="text-emerald-100/40">Network Status</span> <span class="text-emerald-400 font-bold">SYNCHRONIZED</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- block ledger -->
+          <div class="md:col-span-2 krypto-card overflow-hidden">
+            <div class="p-4 border-b border-emerald-200/5 flex justify-between items-center">
+              <h2 class="text-sm font-semibold text-rose-200 flex items-center gap-1.5"><ng-icon name="heroQueueList"></ng-icon> Ledger Inspector</h2>
+              <span class="text-[10px] text-emerald-100/40">Recent 10 Blocks</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-[11px] text-left">
+                <thead class="bg-slate-900/60 text-emerald-100/50 uppercase tracking-tighter">
+                  <tr>
+                    <th class="px-5 py-3 font-medium">Block #</th>
+                    <th class="px-5 py-3 font-medium">Hash Signature</th>
+                    <th class="px-5 py-3 font-medium text-right">Transactions</th>
+                    <th class="px-5 py-3 font-medium text-right">Forged At</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-emerald-200/5">
+                  @for (block of blocks(); track block.index) {
+                    <tr class="transition hover:bg-emerald-200/[0.02]">
+                      <td class="px-5 py-4">
+                        <span class="font-bold text-rose-300">#{{ block.index }}</span>
+                      </td>
+                      <td class="px-5 py-4 font-mono text-[9px] text-emerald-100/50">
+                        {{ block.hash.slice(0, 8) }}...{{ block.hash.slice(-8) }}
+                      </td>
+                      <td class="px-5 py-4 text-right font-bold text-emerald-100">
+                        {{ block.transactionCount }}
+                      </td>
+                      <td class="px-5 py-4 text-right text-emerald-100/40">
+                        {{ block.timestamp | date:'HH:mm:ss' }}
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr><td class="px-5 py-10 text-center text-emerald-100/40" colspan="4">Ledger is empty. Mine first block to start.</td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      }
+
+    }
+  </div>
+</section>
