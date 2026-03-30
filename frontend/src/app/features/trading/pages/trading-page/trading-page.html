@@ -1,0 +1,114 @@
+<div class="krypto-page-container">
+  <div class="grid gap-6">
+    <!-- header -->
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div class="krypto-fade-in">
+        <div class="flex items-center gap-2">
+          <h1 class="font-['Space_Grotesk'] text-2xl font-bold text-emerald-50 flex items-center gap-1.5"><ng-icon name="heroBolt"></ng-icon> Trading Desk</h1>
+          <p class="mt-1 text-xs text-emerald-100/50">Place orders, track fills, and manage your positions.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <a class="krypto-btn-secondary text-[10px]" routerLink="/leaderboard"><ng-icon name="heroTrophy"></ng-icon> Leaderboard</a>
+          <a class="krypto-btn-secondary text-[10px]" routerLink="/markets"><ng-icon name="heroChartBar"></ng-icon> Markets</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- guide accordion -->
+    <app-trading-guide-accordion></app-trading-guide-accordion>
+
+    <!-- messages -->
+    @if (errorMessage(); as error) {
+      <p class="rounded-xl border border-rose-300/20 bg-rose-950/30 px-4 py-3 text-sm text-rose-200">{{ error }}</p>
+    }
+    @if (successMessage(); as message) {
+      <div class="krypto-slide-up rounded-xl border border-emerald-300/20 bg-emerald-950/30 px-4 py-3 text-sm text-emerald-200">✓ {{ message }}</div>
+    }
+
+    <!-- tabs navigation -->
+    <div class="flex items-center gap-1 border-b border-emerald-400/10 px-1 mb-2">
+      <button 
+        class="relative px-4 py-3 text-xs font-bold transition-all"
+        [class.text-emerald-400]="activeTab() === 'trade'"
+        [class.text-emerald-100/40]="activeTab() !== 'trade'"
+        (click)="activeTab.set('trade')">
+        Trading Desk
+        @if (activeTab() === 'trade') {
+          <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]"></div>
+        }
+      </button>
+      <button 
+        class="relative px-4 py-3 text-xs font-bold transition-all"
+        [class.text-emerald-400]="activeTab() === 'orders'"
+        [class.text-emerald-100/40]="activeTab() !== 'orders'"
+        (click)="activeTab.set('orders')">
+        Open Orders
+        @if (myOrders().length > 0) {
+          <span class="ml-1.5 rounded-full bg-emerald-400/10 px-1.5 py-0.5 text-[10px] text-emerald-300">{{ myOrders().length }}</span>
+        }
+        @if (activeTab() === 'orders') {
+          <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]"></div>
+        }
+      </button>
+      <button 
+        class="relative px-4 py-3 text-xs font-bold transition-all"
+        [class.text-emerald-400]="activeTab() === 'history'"
+        [class.text-emerald-100/40]="activeTab() !== 'history'"
+        (click)="activeTab.set('history')">
+        Trade History
+        @if (activeTab() === 'history') {
+          <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]"></div>
+        }
+      </button>
+    </div>
+
+    @if (isLoading()) {
+      <div class="krypto-card p-6 text-sm text-emerald-100/50">Synchronizing market data...</div>
+    } @else {
+ 
+      <!-- chain pulse -->
+      @if (activeTab() === 'trade' && latestBlock(); as block) {
+        <app-trading-chain-pulse [block]="block"></app-trading-chain-pulse>
+      }
+
+      <!-- trade tab: Order Ticket + Markets -->
+      @if (activeTab() === 'trade') {
+        <div class="grid gap-4 lg:grid-cols-[minmax(280px,1fr)_2fr] krypto-fade-in">
+          <div class="grid gap-4 content-start">
+            <app-trading-order-form
+              [coins]="coins()"
+              [isSubmitting]="isSubmitting()"
+              (placeOrder)="dispatchPlaceOrder($event)">
+            </app-trading-order-form>
+          </div>
+          <div class="grid gap-4 content-start">
+            <app-trading-market-snapshot
+              [marketCoins]="marketCoins()">
+            </app-trading-market-snapshot>
+          </div>
+        </div>
+      }
+
+      <!-- orders tab: Active Management -->
+      @if (activeTab() === 'orders') {
+        <div class="krypto-slide-up">
+          <app-trading-my-orders
+            [orders]="myOrders()"
+            [coins]="coins()"
+            (cancel)="cancelOrder($event)">
+          </app-trading-my-orders>
+        </div>
+      }
+
+      <!-- history tab: Execution Record -->
+      @if (activeTab() === 'history') {
+        <div class="krypto-slide-up">
+          <app-trading-recent-trades
+            [trades]="myTrades()"
+            [coins]="coins()">
+          </app-trading-recent-trades>
+        </div>
+      }
+    }
+  </div>
+</div>
