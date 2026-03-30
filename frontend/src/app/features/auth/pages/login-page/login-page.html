@@ -1,0 +1,53 @@
+<section class="grid min-h-[calc(100dvh-9rem)] place-items-center py-8">
+  <div class="w-full max-w-md rounded-2xl border border-emerald-200/20 bg-emerald-950/45 p-7 shadow-[0_12px_40px_rgba(0,0,0,0.35)] backdrop-blur-md">
+    <h1 class="font-['Space_Grotesk'] text-3xl font-bold text-emerald-50">Welcome back</h1>
+    <p class="mt-1 text-sm text-emerald-100/70">Trade, build, and mine without leaving your flow.</p>
+
+    <form class="mt-6 grid gap-2" [formGroup]="form" (ngSubmit)="submit()">
+      <label class="mt-2 text-sm font-semibold text-emerald-100" for="login">Username or email</label>
+      <input
+        class="rounded-xl border border-emerald-200/25 bg-slate-950/80 px-3 py-3 text-emerald-50 outline-none transition placeholder:text-emerald-100/40 focus:border-emerald-300/60"
+        id="login"
+        formControlName="login"
+        type="text"
+        autocomplete="username"
+      />
+      @if (form.controls.login.invalid && form.controls.login.touched) {
+        <p class="text-sm text-rose-300">username or email is required</p>
+      }
+
+      <label class="mt-2 text-sm font-semibold text-emerald-100" for="password">Password</label>
+      <input
+        class="rounded-xl border border-emerald-200/25 bg-slate-950/80 px-3 py-3 text-emerald-50 outline-none transition placeholder:text-emerald-100/40 focus:border-emerald-300/60"
+        id="password"
+        formControlName="password"
+        type="password"
+        autocomplete="current-password"
+      />
+      @if (form.controls.password.invalid && form.controls.password.touched) {
+        <p class="text-sm text-rose-300">password must be at least 6 characters</p>
+      }
+
+      @if (errorMessage(); as error) {
+        <p class="text-sm text-rose-300">{{ error }}</p>
+      }
+
+      <button
+        class="mt-4 rounded-xl bg-gradient-to-r from-emerald-500 to-lime-400 px-4 py-3 font-semibold text-emerald-950 transition hover:brightness-105 disabled:cursor-wait disabled:grayscale-50"
+        type="submit"
+        [disabled]="isSubmitting()"
+      >
+        @if (isSubmitting()) {
+          Signing in...
+        } @else {
+          Sign in
+        }
+      </button>
+    </form>
+
+    <p class="mt-4 text-sm text-emerald-100/70">
+      New to KRYPTO?
+      <a class="font-semibold text-emerald-300 transition hover:text-emerald-200" routerLink="/register">Create account</a>
+    </p>
+  </div>
+</section>
