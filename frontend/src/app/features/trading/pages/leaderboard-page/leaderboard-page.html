@@ -1,0 +1,66 @@
+<section class="krypto-fade-in grid min-h-[calc(100dvh-9rem)] py-6">
+  <div class="mx-auto grid w-full max-w-4xl gap-4 px-4 content-start">
+
+    <!-- header -->
+    <div class="krypto-card-header p-5">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="font-['Space_Grotesk'] text-2xl font-bold text-emerald-50 flex items-center gap-2">
+            <ng-icon name="heroTrophy"></ng-icon> Leaderboard
+          </h1>
+          <p class="mt-1 text-xs text-emerald-100/50">Top traders ranked by total notional volume.</p>
+        </div>
+        <a class="krypto-btn-secondary text-[10px]" routerLink="/trade"><ng-icon name="heroBolt"></ng-icon> Trade</a>
+      </div>
+    </div>
+
+    @if (isLoading()) {
+      <div class="krypto-card p-6 text-sm text-emerald-100/50">Loading leaderboard...</div>
+    } @else {
+      <div class="krypto-card overflow-hidden">
+        <table class="w-full text-xs">
+          <thead class="bg-slate-900/60 text-emerald-100/50">
+            <tr>
+              <th class="w-16 px-4 py-3 text-center font-medium">Rank</th>
+              <th class="px-4 py-3 text-left font-medium">Trader</th>
+              <th class="px-4 py-3 text-right font-medium">Volume</th>
+              <th class="hidden px-4 py-3 text-right font-medium sm:table-cell">Notional (KRYP)</th>
+              <th class="px-4 py-3 text-right font-medium">Trades</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (entry of leaderboard(); track entry.userId; let i = $index) {
+              <tr
+                class="border-t border-emerald-200/5 transition hover:bg-emerald-900/10"
+                [class.bg-amber-900\/5]="i < 3"
+              >
+                <td class="px-4 py-3 text-center">
+                  @if (i < 3) {
+                    <span class="text-base">{{ rankBadge(i) }}</span>
+                  } @else {
+                    <span class="text-[10px] font-bold text-emerald-100/40">{{ rankBadge(i) }}</span>
+                  }
+                </td>
+                <td class="px-4 py-3">
+                  <a
+                    class="font-medium text-emerald-100 no-underline hover:text-emerald-200"
+                    [routerLink]="['/users', entry.userId]"
+                  >{{ entry.username || entry.userId.slice(0, 8) }}</a>
+                </td>
+                <td class="px-4 py-3 text-right font-medium text-emerald-200">{{ entry.totalVolume | number:'1.0-2' }}</td>
+                <td class="hidden px-4 py-3 text-right text-emerald-100/60 sm:table-cell">{{ entry.totalNotional | number:'1.0-2' }}</td>
+                <td class="px-4 py-3 text-right">
+                  <span class="inline-flex items-center rounded-full border border-emerald-200/10 bg-slate-900/40 px-2 py-0.5 text-[10px] font-bold text-emerald-300">{{ entry.trades }}</span>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="5" class="px-4 py-8 text-center text-emerald-100/40">No trading activity yet. Be the first to trade!</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</section>
