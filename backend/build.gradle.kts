@@ -44,8 +44,7 @@ val serviceProjects = listOf(
     "wallet-service",
     "coin-service",
     "trading-service",
-    "blockchain-service",
-    "gamification-service"
+    "blockchain-service"
 )
 
 configure(subprojects.filter { it.name in serviceProjects }) {
@@ -71,8 +70,7 @@ val configClientProjects = listOf(
     "wallet-service",
     "coin-service",
     "trading-service",
-    "blockchain-service",
-    "gamification-service"
+    "blockchain-service"
 )
 
 configure(subprojects.filter { it.name in configClientProjects }) {
