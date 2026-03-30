@@ -1,0 +1,16 @@
+<div class="krypto-card p-5">
+  <h2 class="text-sm font-semibold text-amber-200 flex items-center gap-1.5"><ng-icon name="heroTrophy"></ng-icon> Top Traders</h2>
+  <div class="mt-3 grid gap-2">
+    @for (entry of leaderboard(); track entry.userId; let i = $index) {
+      <a class="flex items-center justify-between rounded-lg border border-emerald-200/10 bg-slate-900/30 p-2.5 no-underline transition hover:border-emerald-200/20" [routerLink]="['/users', entry.userId]">
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] font-bold text-amber-300/70">#{{ i + 1 }}</span>
+          <span class="text-xs font-medium text-emerald-100">{{ entry.userId.length > 12 ? entry.userId.slice(0, 12) + '...' : entry.userId }}</span>
+        </div>
+        <span class="text-[10px] text-emerald-100/40">{{ entry.trades }} trades</span>
+      </a>
+    } @empty {
+      <p class="text-xs text-emerald-100/40">Leaderboard unavailable.</p>
+    }
+  </div>
+</div>
