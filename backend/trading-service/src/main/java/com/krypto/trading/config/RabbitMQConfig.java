@@ -10,17 +10,11 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitMQConfig {
 
     public static final String TRADING_EXCHANGE = "trading.exchange";
-    public static final String GAMIFICATION_EXCHANGE = "gamification.exchange";
     public static final String TRADE_EXECUTED_ROUTING_KEY = "trade.executed";
 
     @Bean
     public TopicExchange tradingExchange() {
         return new TopicExchange(TRADING_EXCHANGE);
-    }
-
-    @Bean
-    public TopicExchange gamificationExchange() {
-        return new TopicExchange(GAMIFICATION_EXCHANGE);
     }
 
     @Bean
