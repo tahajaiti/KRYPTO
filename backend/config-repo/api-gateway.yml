@@ -42,7 +42,7 @@ spring:
             - id: coin-service
               uri: lb://coin-service
               predicates:
-                - Path=/api/coins/**
+                - Path=/api/coins/**,/api/admin/coins/**
 
             - id: trading-service
               uri: lb://trading-service
@@ -53,11 +53,6 @@ spring:
               uri: lb://blockchain-service
               predicates:
                 - Path=/api/blockchain/**
-
-            - id: gamification-service
-              uri: lb://gamification-service
-              predicates:
-                - Path=/api/challenges/**,/api/badges/**,/api/leaderboard/**
 
 management:
   endpoint:
