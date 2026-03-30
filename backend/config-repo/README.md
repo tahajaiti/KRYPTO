@@ -15,7 +15,6 @@ This folder contains externalized configuration for all services and profiles.
 Examples:
 - `user-service.yml`
 - `trading-service.yml`
-- `gamification-service.yml`
 
 ## Profiles
 
