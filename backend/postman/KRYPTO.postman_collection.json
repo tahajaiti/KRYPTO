@@ -12,9 +12,7 @@
     { "key": "userId", "value": "00000000-0000-0000-0000-000000000001" },
     { "key": "adminUserId", "value": "00000000-0000-0000-0000-000000000002" },
     { "key": "coinId", "value": "00000000-0000-0000-0000-000000000003" },
-    { "key": "orderId", "value": "00000000-0000-0000-0000-000000000004" },
-    { "key": "challengeId", "value": "00000000-0000-0000-0000-000000000005" },
-    { "key": "badgeId", "value": "00000000-0000-0000-0000-000000000006" }
+    { "key": "orderId", "value": "00000000-0000-0000-0000-000000000004" }
   ],
   "item": [
     {
@@ -421,100 +419,6 @@
             "method": "GET",
             "url": "{{baseUrl}}/api/blockchain/verify",
             "description": "Admin-only full chain validation check."
-          }
-        }
-      ]
-    },
-    {
-      "name": "Gamification",
-      "description": "Challenges, badges, and gamification leaderboard endpoints.",
-      "item": [
-        {
-          "name": "Get Active Challenges",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/challenges",
-            "description": "List active challenges."
-          }
-        },
-        {
-          "name": "Get Challenges By Type",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/challenges/type/DAILY",
-            "description": "Filter by challenge type. Enum hints: DAILY, WEEKLY, SEASONAL."
-          }
-        },
-        {
-          "name": "Get Challenge By Id",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/challenges/{{challengeId}}",
-            "description": "Get one challenge definition."
-          }
-        },
-        {
-          "name": "Get My Challenges",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/challenges/user/my-challenges",
-            "description": "Current user's challenge progress list."
-          }
-        },
-        {
-          "name": "Get User Challenges By UserId",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/challenges/user/{{userId}}",
-            "description": "Fetch challenge progress for a specific user id."
-          }
-        },
-        {
-          "name": "Get My Progress For Challenge",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/challenges/{{challengeId}}/user/my-progress",
-            "description": "Current user's progress for one challenge."
-          }
-        },
-        {
-          "name": "Get Active Badges",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/badges",
-            "description": "List active badges."
-          }
-        },
-        {
-          "name": "Get Badge By Id",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/badges/{{badgeId}}",
-            "description": "Get one badge definition."
-          }
-        },
-        {
-          "name": "Get My Badges",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/badges/user/my-badges",
-            "description": "Current user's earned badges."
-          }
-        },
-        {
-          "name": "Get User Badges By UserId",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/badges/user/{{userId}}",
-            "description": "Fetch earned badges for a specific user id."
-          }
-        },
-        {
-          "name": "Gamification Leaderboard",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/leaderboard?limit=10",
-            "description": "Cached gamification leaderboard."
           }
         }
       ]
