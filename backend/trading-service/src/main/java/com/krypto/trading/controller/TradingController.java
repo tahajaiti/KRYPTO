@@ -6,6 +6,7 @@ import com.krypto.trading.dto.request.PlaceOrderRequest;
 import com.krypto.trading.dto.response.LeaderboardEntryResponse;
 import com.krypto.trading.dto.response.OrderResponse;
 import com.krypto.trading.dto.response.TradeResponse;
+import com.krypto.trading.service.LeaderboardService;
 import com.krypto.trading.service.TradingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -14,13 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
@@ -31,6 +26,7 @@ import java.util.UUID;
 public class TradingController {
 
     private final TradingService tradingService;
+    private final LeaderboardService leaderboardService;
 
     @PostMapping("/orders")
     public ResponseEntity<ApiResponse<OrderResponse>> placeOrder(@Valid @RequestBody PlaceOrderRequest request) {
@@ -76,6 +72,6 @@ public class TradingController {
     public ResponseEntity<ApiResponse<List<LeaderboardEntryResponse>>> getLeaderboard(
             @RequestParam(defaultValue = "10") int limit
     ) {
-        return ResponseEntity.ok(ApiResponse.ok(tradingService.getLeaderboard(limit)));
+        return ResponseEntity.ok(ApiResponse.ok(leaderboardService.getLeaderboard(limit)));
     }
 }
