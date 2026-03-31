@@ -3,6 +3,7 @@ package com.krypto.wallet.service.impl;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -372,15 +373,32 @@ public class WalletServiceImpl implements WalletService {
     }
 
     private WalletBalance getOrCreateCoinBalance(Wallet wallet, UUID coinId, String symbol) {
-        return walletBalanceRepository.findByWalletIdAndCoinId(wallet.getId(), coinId)
-                .orElseGet(() -> walletBalanceRepository.save(
-                        WalletBalance.builder()
-                                .wallet(wallet)
-                                .coinId(coinId)
-                                .symbol(symbol)
-                                .balance(BigDecimal.ZERO)
-                                .build()
-                ));
+        Optional<WalletBalance> existing = walletBalanceRepository.findByWalletIdAndCoinId(wallet.getId(), coinId);
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+        
+        Optional<WalletBalance> bySymbol = walletBalanceRepository.findByWalletIdAndSymbol(wallet.getId(), symbol);
+        if (bySymbol.isPresent()) {
+            WalletBalance balance = bySymbol.get();
+            if (balance.getCoinId() != null && !balance.getCoinId().equals(coinId)) {
+                log.warn("wallet_id={} has symbol={} with different coinId. existing={}, provided={}",
+                        wallet.getId(), symbol, balance.getCoinId(), coinId);
+            } else if (balance.getCoinId() == null && coinId != null) {
+                balance.setCoinId(coinId);
+                balance = walletBalanceRepository.save(balance);
+            }
+            return balance;
+        }
+        
+        return walletBalanceRepository.save(
+                WalletBalance.builder()
+                        .wallet(wallet)
+                        .coinId(coinId)
+                        .symbol(symbol)
+                        .balance(BigDecimal.ZERO)
+                        .build()
+        );
     }
 
     private void assertInternalSecret(String providedSecret) {

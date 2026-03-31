@@ -76,7 +76,7 @@ public class LeaderboardServiceImpl implements LeaderboardService {
                         .comparing(LeaderboardEntryResponse::getTotalNotional).reversed()
                         .thenComparing(LeaderboardEntryResponse::getTotalVolume).reversed())
                 .limit(resolvedLimit)
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()).reversed();
     }
 
     private void accumulate(Map<UUID, LeaderboardAccumulator> stats, UUID userId, BigDecimal volume, BigDecimal notional) {
