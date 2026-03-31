@@ -44,6 +44,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -133,10 +134,11 @@ public class CoinServiceImpl implements CoinService {
         } else {
             String term = query.trim();
             if (activeOnly) {
-                page = coinRepository.findByActiveTrueAndNameContainingIgnoreCaseOrActiveTrueAndSymbolContainingIgnoreCase(
-                        term,
-                        term,
-                        pageable);
+                page = coinRepository
+                        .findByActiveTrueAndNameContainingIgnoreCaseOrActiveTrueAndSymbolContainingIgnoreCase(
+                                term,
+                                term,
+                                pageable);
             } else {
                 page = coinRepository.findByNameContainingIgnoreCaseOrSymbolContainingIgnoreCase(
                         term,
@@ -177,109 +179,120 @@ public class CoinServiceImpl implements CoinService {
     @Override
     @Transactional(readOnly = true)
     public java.util.Map<UUID, BigDecimal> getCoinPricesBatch(java.util.Set<UUID> coinIds) {
-        if (coinIds == null || coinIds.isEmpty()) return Collections.emptyMap();
+        if (coinIds == null || coinIds.isEmpty())
+            return Collections.emptyMap();
         return coinRepository.findAllById(coinIds).stream()
-                .collect(java.util.stream.Collectors.toMap(Coin::getId, Coin::getCurrentPrice));
+                .collect(Collectors.toMap(Coin::getId, Coin::getCurrentPrice));
     }
 
-            @Override
-            @Transactional(readOnly = true)
-            public List<CoinPriceHistoryPointResponse> getCoinPriceHistory(UUID id, Integer points, Instant from, Instant to) {
-            coinRepository.findById(id)
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.Map<UUID, CoinResponse> getCoinsBatch(java.util.Set<UUID> coinIds) {
+        if (coinIds == null || coinIds.isEmpty())
+            return Collections.emptyMap();
+        return coinRepository.findAllById(coinIds).stream()
+                .collect(Collectors.toMap(Coin::getId, coinMapper::toResponse));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CoinPriceHistoryPointResponse> getCoinPriceHistory(UUID id, Integer points, Instant from, Instant to) {
+        coinRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Coin", id));
 
-            List<PriceHistory> history;
-            if (from != null && to != null && from.isBefore(to)) {
-                history = priceHistoryRepository.findByCoinIdAndRecordedAtBetweenOrderByRecordedAtAsc(id, from, to);
-            } else {
-                int safePoints = Math.max(10, Math.min(points == null ? 200 : points, 1000));
-                history = priceHistoryRepository.findByCoinIdOrderByRecordedAtDesc(id, PageRequest.of(0, safePoints));
-                Collections.reverse(history);
-            }
+        List<PriceHistory> history;
+        if (from != null && to != null && from.isBefore(to)) {
+            history = priceHistoryRepository.findByCoinIdAndRecordedAtBetweenOrderByRecordedAtAsc(id, from, to);
+        } else {
+            int safePoints = Math.max(10, Math.min(points == null ? 200 : points, 1000));
+            history = priceHistoryRepository.findByCoinIdOrderByRecordedAtDesc(id, PageRequest.of(0, safePoints));
+            Collections.reverse(history);
+        }
 
-            List<CoinPriceHistoryPointResponse> response = new ArrayList<>();
-            for (PriceHistory point : history) {
-                response.add(CoinPriceHistoryPointResponse.builder()
+        List<CoinPriceHistoryPointResponse> response = new ArrayList<>();
+        for (PriceHistory point : history) {
+            response.add(CoinPriceHistoryPointResponse.builder()
                     .price(point.getPrice())
                     .volume(point.getVolume())
                     .recordedAt(point.getRecordedAt())
                     .build());
-            }
+        }
 
-            return response;
-            }
+        return response;
+    }
 
-            @Override
-            @Transactional(readOnly = true)
-            public CoinInvestmentPreferenceResponse getInvestmentPreference(UUID coinId) {
-            coinRepository.findByIdAndActiveTrue(coinId)
+    @Override
+    @Transactional(readOnly = true)
+    public CoinInvestmentPreferenceResponse getInvestmentPreference(UUID coinId) {
+        coinRepository.findByIdAndActiveTrue(coinId)
                 .orElseThrow(() -> new ResourceNotFoundException("Coin", coinId));
 
-            UUID userId = AuthorizationUtils.requireUserId();
-            boolean investing = coinInvestmentPreferenceRepository
+        UUID userId = AuthorizationUtils.requireUserId();
+        boolean investing = coinInvestmentPreferenceRepository
                 .findByUserIdAndCoinId(userId, coinId)
                 .map(CoinInvestmentPreference::isInvesting)
                 .orElse(false);
 
-            return CoinInvestmentPreferenceResponse.builder()
+        return CoinInvestmentPreferenceResponse.builder()
                 .coinId(coinId)
                 .investing(investing)
                 .build();
-            }
+    }
 
-            @Override
-            @Transactional
-            public CoinInvestmentPreferenceResponse updateInvestmentPreference(UUID coinId, boolean investing) {
-            coinRepository.findByIdAndActiveTrue(coinId)
+    @Override
+    @Transactional
+    public CoinInvestmentPreferenceResponse updateInvestmentPreference(UUID coinId, boolean investing) {
+        coinRepository.findByIdAndActiveTrue(coinId)
                 .orElseThrow(() -> new ResourceNotFoundException("Coin", coinId));
 
-            UUID userId = AuthorizationUtils.requireUserId();
-            CoinInvestmentPreference preference = coinInvestmentPreferenceRepository
+        UUID userId = AuthorizationUtils.requireUserId();
+        CoinInvestmentPreference preference = coinInvestmentPreferenceRepository
                 .findByUserIdAndCoinId(userId, coinId)
                 .orElseGet(() -> CoinInvestmentPreference.builder()
-                    .userId(userId)
-                    .coinId(coinId)
-                    .investing(false)
-                    .build());
+                        .userId(userId)
+                        .coinId(coinId)
+                        .investing(false)
+                        .build());
 
-            preference.setInvesting(investing);
-            coinInvestmentPreferenceRepository.save(preference);
+        preference.setInvesting(investing);
+        coinInvestmentPreferenceRepository.save(preference);
 
-            return CoinInvestmentPreferenceResponse.builder()
+        return CoinInvestmentPreferenceResponse.builder()
                 .coinId(coinId)
                 .investing(preference.isInvesting())
                 .build();
-            }
+    }
 
-            @Override
-            @Transactional(readOnly = true)
-            public List<CoinInvestmentPreferenceResponse> getMyInvestments() {
-            UUID userId = AuthorizationUtils.requireUserId();
-            
-            return coinInvestmentPreferenceRepository.findByUserIdAndInvestingTrue(userId)
+    @Override
+    @Transactional(readOnly = true)
+    public List<CoinInvestmentPreferenceResponse> getMyInvestments() {
+        UUID userId = AuthorizationUtils.requireUserId();
+
+        return coinInvestmentPreferenceRepository.findByUserIdAndInvestingTrue(userId)
                 .stream()
                 .map(item -> CoinInvestmentPreferenceResponse.builder()
-                    .coinId(item.getCoinId())
-                    .investing(true)
-                    .build())
+                        .coinId(item.getCoinId())
+                        .investing(true)
+                        .build())
                 .toList();
-            }
+    }
 
-            @Override
-            @Transactional(readOnly = true)
-            public List<CoinResponse> getWatchedCoins(UUID userId) {
-            List<UUID> coinIds = coinInvestmentPreferenceRepository.findByUserIdAndInvestingTrue(userId)
+    @Override
+    @Transactional(readOnly = true)
+    public List<CoinResponse> getWatchedCoins(UUID userId) {
+        List<UUID> coinIds = coinInvestmentPreferenceRepository.findByUserIdAndInvestingTrue(userId)
                 .stream()
                 .map(CoinInvestmentPreference::getCoinId)
                 .toList();
-            
-            if (coinIds.isEmpty()) return List.of();
-            
-            return coinRepository.findAllById(coinIds).stream()
+
+        if (coinIds.isEmpty())
+            return List.of();
+
+        return coinRepository.findAllById(coinIds).stream()
                 .filter(Coin::isActive)
                 .map(coinMapper::toResponse)
                 .toList();
-            }
+    }
 
     @Override
     @Transactional

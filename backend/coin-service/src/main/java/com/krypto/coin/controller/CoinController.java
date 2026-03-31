@@ -72,6 +72,12 @@ public class CoinController {
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
+    @PostMapping("/batch")
+    public ResponseEntity<ApiResponse<java.util.Map<UUID, CoinResponse>>> getCoinsBatch(@RequestBody java.util.Set<UUID> coinIds) {
+        java.util.Map<UUID, CoinResponse> response = coinService.getCoinsBatch(coinIds);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
     @GetMapping("/{id}/history")
     public ResponseEntity<ApiResponse<List<CoinPriceHistoryPointResponse>>> getCoinPriceHistory(
             @PathVariable UUID id,

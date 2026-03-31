@@ -10,8 +10,10 @@ import com.krypto.common.dto.PageResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public interface CoinService {
@@ -24,7 +26,9 @@ public interface CoinService {
 
     CoinPriceResponse getCoinPrice(UUID id);
 
-    java.util.Map<UUID, java.math.BigDecimal> getCoinPricesBatch(java.util.Set<UUID> coinIds);
+    Map<UUID, BigDecimal> getCoinPricesBatch(java.util.Set<UUID> coinIds);
+
+    Map<UUID, CoinResponse> getCoinsBatch(java.util.Set<UUID> coinIds);
 
     List<CoinPriceHistoryPointResponse> getCoinPriceHistory(UUID id, Integer points, Instant from, Instant to);
 

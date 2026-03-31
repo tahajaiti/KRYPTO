@@ -2,9 +2,14 @@ package com.krypto.wallet.service.impl;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -20,6 +25,7 @@ import com.krypto.common.exception.ErrorCode;
 import com.krypto.common.exception.ResourceNotFoundException;
 import com.krypto.common.security.AuthorizationUtils;
 import com.krypto.wallet.client.CoinClient;
+import com.krypto.wallet.client.dto.CoinDetailResponse;
 import com.krypto.wallet.dto.request.DebitKrypRequest;
 import com.krypto.wallet.dto.request.MintCoinRequest;
 import com.krypto.wallet.dto.request.SettleTradeRequest;
@@ -296,31 +302,20 @@ public class WalletServiceImpl implements WalletService {
         Wallet wallet = findWalletByUserId(userId);
         List<WalletBalance> balances = wallet.getBalances();
 
-        java.util.Set<UUID> coinIds = balances.stream()
+        Set<UUID> coinIds = balances.stream()
                 .map(WalletBalance::getCoinId)
-                .filter(java.util.Objects::nonNull)
-                .collect(java.util.stream.Collectors.toSet());
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
 
-        java.util.Map<UUID, BigDecimal> priceMap = new java.util.HashMap<>();
+        Map<UUID, CoinDetailResponse> coinMap = new HashMap<>();
         if (!coinIds.isEmpty()) {
             try {
-                ApiResponse<java.util.Map<UUID, BigDecimal>> response = coinClient.getCoinPricesBatch(coinIds);
+                ApiResponse<Map<UUID, CoinDetailResponse>> response = coinClient.getCoinsBatch(coinIds);
                 if (response != null && response.getData() != null) {
-                    for (java.util.Map.Entry<?, BigDecimal> entry : response.getData().entrySet()) {
-                        UUID key;
-                        Object k = entry.getKey();
-                        if (k instanceof String) {
-                            key = UUID.fromString((String) k);
-                        } else if (k instanceof UUID) {
-                            key = (UUID) k;
-                        } else {
-                            continue;
-                        }
-                        priceMap.put(key, entry.getValue());
-                    }
+                    coinMap.putAll(response.getData());
                 }
             } catch (Exception e) {
-                log.warn("Failed to fetch batch coin prices for net worth calculation: {}", e.getMessage());
+                log.warn("Failed to fetch batch coins for net worth calculation: {}", e.getMessage());
             }
         }
 
@@ -334,7 +329,8 @@ public class WalletServiceImpl implements WalletService {
             if (isKryp) {
                 priceInKryp = BigDecimal.ONE;
             } else if (balance.getCoinId() != null) {
-                priceInKryp = priceMap.getOrDefault(balance.getCoinId(), BigDecimal.ZERO);
+                CoinDetailResponse coin = coinMap.get(balance.getCoinId());
+                priceInKryp = coin != null ? coin.getCurrentPrice() : BigDecimal.ZERO;
             } else {
                 priceInKryp = BigDecimal.ZERO;
             }

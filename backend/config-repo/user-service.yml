@@ -21,4 +21,4 @@ jwt:
   refresh-token-expiration: 604800000
 
 krypto:
-  initial-balance: 10000
+  initial-balance: 500

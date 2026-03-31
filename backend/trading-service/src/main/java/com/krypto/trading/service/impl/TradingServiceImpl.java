@@ -224,11 +224,14 @@ public class TradingServiceImpl implements TradingService {
     private void executeTrade(Order taker, Order maker, BigDecimal amount, BigDecimal price) {
         BigDecimal fee = amount.multiply(price).multiply(feeRate);
         
+        UUID buyerId = taker.getSide() == OrderSide.BUY ? taker.getUserId() : maker.getUserId();
+        UUID sellerId = taker.getSide() == OrderSide.SELL ? taker.getUserId() : maker.getUserId();
+        
         Trade trade = Trade.builder()
                 .buyOrderId(taker.getSide() == OrderSide.BUY ? taker.getId() : maker.getId())
                 .sellOrderId(taker.getSide() == OrderSide.SELL ? taker.getId() : maker.getId())
-                .buyerId(taker.getSide() == OrderSide.BUY ? taker.getUserId() : maker.getUserId())
-                .sellerId(taker.getSide() == OrderSide.SELL ? taker.getUserId() : maker.getUserId())
+                .buyerId(buyerId)
+                .sellerId(sellerId)
                 .coinId(taker.getCoinId())
                 .price(price)
                 .amount(amount)
@@ -236,14 +239,13 @@ public class TradingServiceImpl implements TradingService {
                 .executedAt(Instant.now())
                 .build();
 
+        String coinSymbol = getCoinSymbol(taker.getCoinId());
+        settleOnWallet(trade, coinSymbol);
         tradeRepository.save(trade);
-
         updateOrderAfterFill(taker, amount);
         updateOrderAfterFill(maker, amount);
-
-        settleOnWallet(trade);
         updateMarketPrice(taker.getCoinId(), price, amount);
-        publishToBlockchain(trade.getId(), trade.getExecutedAt(), trade.getBuyerId(), trade.getSellerId(), "COIN", amount, fee);
+        publishToBlockchain(trade.getId(), trade.getExecutedAt(), buyerId, sellerId, coinSymbol, amount, fee);
     }
 
     private void updateOrderAfterFill(Order order, BigDecimal fillAmount) {
@@ -260,22 +262,28 @@ public class TradingServiceImpl implements TradingService {
         return order.getAmount().subtract(order.getFilledAmount());
     }
 
-    private void settleOnWallet(Trade trade) {
+    private void settleOnWallet(Trade trade, String coinSymbol) {
+        walletClient.settleTrade(
+            new SettleTradeRequest(
+                trade.getBuyerId(),
+                trade.getSellerId(),
+                trade.getCoinId(),
+                coinSymbol,
+                trade.getAmount(),
+                trade.getPrice(),
+                trade.getFee()
+            ),
+            internalSecret
+        );
+    }
+
+    private String getCoinSymbol(UUID coinId) {
         try {
-            walletClient.settleTrade(
-                new SettleTradeRequest(
-                    trade.getBuyerId(),
-                    trade.getSellerId(),
-                    trade.getCoinId(),
-                    "COIN", // temp symbol placeholder
-                    trade.getAmount(),
-                    trade.getPrice(),
-                    trade.getFee()
-                ),
-                internalSecret
-            );
+            CoinPriceResponse coinPrice = coinClient.getCoinPrice(coinId).getData();
+            return coinPrice.getSymbol();
         } catch (Exception e) {
-            log.error("Wallet settlement failed for trade {}: {}", trade.getId(), e.getMessage());
+            log.error("Failed to fetch coin symbol for coin {}: {}", coinId, e.getMessage());
+            throw new BusinessException(ErrorCode.SERVICE_UNAVAILABLE, "failed to fetch coin details");
         }
     }
 
